@@ -1,0 +1,697 @@
+import { 
+  useState, 
+  useMemo,
+  useCallback,
+  useRef
+} from 'react';
+import { 
+  Box, Typography, Button, IconButton, Grid, 
+  Dialog, DialogContent, DialogTitle,
+  Card, CardActionArea, TextField,
+  Avatar, Chip, Paper, Tooltip,
+  useTheme, alpha, useMediaQuery, SwipeableDrawer, Fab, Badge,
+  List, ListItem, Drawer
+} from '@mui/material';
+import { 
+  Delete, ShoppingCart, PointOfSale, Person, ArrowBack, LocalAtm, CreditCard,
+  Search, Close, Description, InfoOutlined, EmojiFoodBeverage, Cake, Handyman,
+  PauseCircle, PlayCircle
+} from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCartStore, type Customer } from '../../store/useCartStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
+import { useHeldOrdersStore } from '../../store/useHeldOrdersStore';
+import { useActivityStore } from '../../store/useActivityStore';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { InvoiceReceipt } from '../../components/pos/InvoiceReceipt';
+import { useReactToPrint } from 'react-to-print';
+import { useSalesStore } from '../../store/useSalesStore';
+import { useAuthStore } from '../../store/useAuthStore';
+
+import { useInventoryStore } from '../../store/useInventoryStore';
+import { useKDSStore } from '../../store/useKDSStore';
+
+// --- UPDATED MOCK DATA FOR CAFE ---
+const MOCK_CATEGORIES = [
+  { name: 'All', icon: <ShoppingCart /> },
+  { name: 'Coffee', icon: <EmojiFoodBeverage /> },
+  { name: 'Tea', icon: '🍵' },
+  { name: 'Pastries', icon: <Cake /> },
+  { name: 'Equipment', icon: <Handyman /> }
+];
+
+const MOCK_CUSTOMERS: Customer[] = [
+  { id: '1', name: 'John Doe', email: 'john@example.com', points: 450 },
+  { id: '2', name: 'Jane Smith', email: 'jane@world.com', points: 120 },
+  { id: '3', name: 'Coffee Club LLC', email: 'biz@coffee.com', points: 2300 },
+];
+
+export default function POSPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const { items, addItem, updateQuantity, updatePrice, updateDiscount, clearCart, customer, setCustomer } = useCartStore();
+  const { enqueue } = useNotificationStore();
+  const { orders: heldOrders, holdOrder, recallOrder } = useHeldOrdersStore();
+  const { logActivity } = useActivityStore();
+  const { addSale } = useSalesStore();
+  const { user } = useAuthStore();
+  const { products, deductStockFromSale } = useInventoryStore();
+  const { addOrder } = useKDSStore();
+  
+  // Initialize Barcode Scanner (listening globally for rapid typing)
+  useBarcodeScanner(products);
+
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
+  const [numpadMode, setNumpadMode] = useState<'Qty' | 'Disc' | 'Price'>('Qty');
+  const [inputValue, setInputValue] = useState('');
+  
+  const [customerModal, setCustomerModal] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [heldDrawerOpen, setHeldDrawerOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const receiptDocRef = useRef<HTMLDivElement>(null);
+  
+  const handlePrint = useReactToPrint({
+    contentRef: () => receiptDocRef.current,
+    documentTitle: `Receipt-${new Date().getTime()}`,
+  });
+
+  const debouncedProductSearch = useDebounce(productSearch, 300);
+
+  // Calculations
+  const subtotal = useMemo(() => items.reduce((sum, item) => sum + (item.price * item.quantity), 0), [items]);
+  const discountAmount = useMemo(() => items.reduce((sum, item) => sum + ((item.discount || 0) * item.quantity), 0), [items]);
+  const total = subtotal - discountAmount;
+  const tax = total * 0.08;
+  const grandTotal = total + tax;
+
+  const filteredProducts = useMemo(() => {
+    let prods = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
+    if (debouncedProductSearch) {
+      const q = debouncedProductSearch.toLowerCase();
+      prods = prods.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
+    }
+    return prods;
+  }, [activeCategory, debouncedProductSearch, products]);
+  
+  const filteredCustomers = MOCK_CUSTOMERS.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleProductClick = (product: any) => {
+    addItem(product);
+    setSelectedLineId(product.id);
+    setNumpadMode('Qty');
+    setInputValue('');
+    enqueue(`${product.name} added to cart`, 'success');
+  };
+
+  // Hold current order
+  const handleHoldOrder = useCallback(() => {
+    if (items.length === 0) { enqueue('Cart is empty — nothing to hold', 'warning'); return; }
+    const heldId = holdOrder(items, customer);
+    logActivity('ORDER_HELD', `Held order ${heldId} with ${items.length} items`);
+    clearCart();
+    enqueue(`Order held (${items.length} items)`, 'info');
+    setHeldDrawerOpen(false);
+  }, [items, customer, holdOrder, clearCart, enqueue, logActivity]);
+
+  // Recall a held order
+  const handleRecallOrder = useCallback((id: string) => {
+    const order = recallOrder(id);
+    if (order) {
+      // If current cart has items, hold them first
+      if (items.length > 0) {
+        holdOrder(items, customer, 'Auto-held on recall');
+        clearCart();
+      }
+      // Add each item with its correct quantity
+      order.items.forEach(item => {
+        addItem({ ...item, quantity: 1 });
+        // Set the correct quantity after adding
+        if (item.quantity > 1) {
+          updateQuantity(item.id, item.quantity);
+        }
+      });
+      if (order.customer) setCustomer(order.customer);
+      logActivity('ORDER_RECALLED', `Recalled order ${id}`);
+      enqueue(`Order recalled (${order.items.length} items)`, 'success');
+    }
+    setHeldDrawerOpen(false);
+  }, [recallOrder, items, customer, holdOrder, addItem, updateQuantity, clearCart, setCustomer, enqueue, logActivity]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: 'F2', description: 'Focus Search', handler: () => searchInputRef.current?.focus() },
+    { key: 'F4', description: 'Hold Order', handler: handleHoldOrder },
+    { key: 'F8', description: 'Open Payment', handler: () => { if (items.length > 0) setPaymentOpen(true); } },
+    { key: 'Escape', description: 'Clear Cart', handler: () => { clearCart(); enqueue('Cart cleared', 'info'); } },
+  ]);
+
+  const handleNumpadInput = (val: string) => {
+    if (!selectedLineId) return;
+    
+    let newVal = inputValue;
+    if (val === 'C') newVal = '';
+    else if (val === 'Backspace') newVal = newVal.slice(0, -1);
+    else if (val === '.' && newVal.includes('.')) return;
+    else if (val === '+/-') newVal = newVal.startsWith('-') ? newVal.substring(1) : '-' + newVal;
+    else newVal += val;
+
+    setInputValue(newVal);
+    const numValue = parseFloat(newVal) || 0;
+
+    if (numpadMode === 'Qty') updateQuantity(selectedLineId, numValue);
+    if (numpadMode === 'Disc') updateDiscount(selectedLineId, numValue);
+    if (numpadMode === 'Price') updatePrice(selectedLineId, numValue);
+  };
+
+  const glassStyle = {
+    bgcolor: alpha(theme.palette.background.paper, 0.6),
+    backdropFilter: 'blur(20px)',
+    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+  };
+
+  // Helper to render the cart content (shared between desktop and mobile)
+  const renderCart = () => (
+    <>
+      {/* Customer & Cart Header */}
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 1.5, borderRadius: 4, display: 'flex', gap: 1, 
+          bgcolor: 'primary.main', color: 'white', boxShadow: `0 8px 20px -8px ${alpha(theme.palette.primary.main, 0.4)}`
+        }}
+      >
+        <Button 
+          fullWidth startIcon={<Person />} 
+          onClick={() => setCustomerModal(true)}
+          sx={{ 
+            bgcolor: 'rgba(255,255,255,0.12)', color: 'white', fontWeight: 700, py: 1.2, borderRadius: 3,
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }, textTransform: 'none'
+          }}
+        >
+          {customer ? customer.name : 'TABLE O-24 / GUEST'}
+        </Button>
+        <IconButton onClick={clearCart} sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 3, width: 48, height: 48 }}>
+          <Delete />
+        </IconButton>
+      </Paper>
+
+      {/* Cart Container */}
+      <Paper elevation={0} sx={{ flex: 1, borderRadius: 5, ...glassStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}` }}>
+          <Typography variant="subtitle1" fontWeight={800}>Current Order</Typography>
+        </Box>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+          <AnimatePresence initial={false}>
+            {items.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                layout
+              >
+                  <Box 
+                    onClick={() => { setSelectedLineId(item.id); setInputValue(''); }}
+                    sx={{ 
+                      p: 2, mb: 1, borderRadius: 4, cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: selectedLineId === item.id ? 'primary.main' : 'transparent',
+                      bgcolor: selectedLineId === item.id ? alpha(theme.palette.primary.main, 0.03) : alpha(theme.palette.background.paper, 0.3),
+                      transition: '0.2s'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography fontWeight={700} variant="body2">{item.name}</Typography>
+                      <Typography fontWeight={800} color="primary.main">${((item.price - (item.discount || 0)) * item.quantity).toFixed(2)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Typography variant="caption" fontWeight={700} sx={{ bgcolor: 'white', px: 1, py: 0.2, borderRadius: 1.5, color: 'text.secondary' }}>{item.quantity}x</Typography>
+                      <Typography variant="caption" fontWeight={600} color="text.secondary">@ ${item.price.toFixed(2)}</Typography>
+                      {item.discount && (
+                        <Typography variant="caption" color="error.main" fontWeight={700}>-${item.discount.toFixed(2)}</Typography>
+                      )}
+                    </Box>
+                  </Box>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </Box>
+
+        {/* Checkout Footer */}
+        <Box sx={{ p: 3, bgcolor: alpha(theme.palette.background.paper, 0.8), borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+          <Box sx={{ mb: 2 }}>
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" fontWeight={700} color="text.secondary">Order Total</Typography>
+                <Typography variant="caption" fontWeight={800}>${subtotal.toFixed(2)}</Typography>
+             </Box>
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <Typography variant="subtitle2" fontWeight={800}>Amount Due</Typography>
+                <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ letterSpacing: -1 }}>${grandTotal.toFixed(2)}</Typography>
+             </Box>
+          </Box>
+
+          {/* SWIFTY POS TACTILE NUMPAD - Compact */}
+          <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), borderRadius: 4, p: 0.5 }}>
+             <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
+                {['Qty', 'Disc', 'Price'].map(mode => (
+                  <Button 
+                    key={mode} fullWidth 
+                    onClick={() => setNumpadMode(mode as any)}
+                    sx={{ 
+                      borderRadius: 3, py: 0.8, fontWeight: 700, fontSize: '0.875rem',
+                      bgcolor: numpadMode === mode ? 'primary.main' : 'transparent', 
+                      color: numpadMode === mode ? 'white' : 'text.secondary',
+                      '&:hover': { bgcolor: numpadMode === mode ? 'primary.dark' : alpha(theme.palette.primary.main, 0.05) }
+                    }}
+                  >
+                    {mode}
+                  </Button>
+                ))}
+             </Box>
+             <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5, flex: 3 }}>
+                  {['1','2','3','4','5','6','7','8','9','+/-','0','.'].map(k => (
+                    <Button 
+                      key={k} onClick={() => handleNumpadInput(k)}
+                      sx={{ bgcolor: 'white', borderRadius: 3, py: 1.2, fontSize: '1.2rem', fontWeight: 700, color: 'text.primary', boxShadow: theme.shadows[1] }}
+                    >
+                      {k}
+                    </Button>
+                  ))}
+                </Box>
+                <Box sx={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                   <Button onClick={() => handleNumpadInput('Backspace')} sx={{ flex: 1, bgcolor: '#FFEDD5', borderRadius: 3, color: 'primary.main' }}><ArrowBack /></Button>
+                   <Button 
+                    variant="contained" color="primary"
+                    onClick={() => { setPaymentOpen(true); setMobileCartOpen(false); }}
+                    disabled={items.length === 0}
+                    sx={{ flex: 3, borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 0.5, boxShadow: theme.shadows[4] }}
+                   >
+                     <PointOfSale sx={{ fontSize: 24 }} />
+                     <Typography fontWeight={800} variant="button">PAY</Typography>
+                   </Button>
+                </Box>
+             </Box>
+          </Box>
+        </Box>
+      </Paper>
+    </>
+  );
+
+  return (
+    <Box sx={{ 
+      width: '100%',
+      p: { xs: 1.5, md: 3 }, 
+      display: 'flex', 
+      flexDirection: { xs: 'column', lg: 'row' },
+      gap: { xs: 2, lg: 3 }, 
+      height: { xs: 'auto', lg: 'calc(100vh - 120px)' },
+      bgcolor: 'background.default',
+      position: 'relative',
+      overflow: { xs: 'auto', lg: 'hidden' }
+    }}>
+      
+      {/* LEFT PANE: PRODUCT EXPLORER */}
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: { xs: 2, lg: 3 },
+        minHeight: 0 // Crucial for inner scroll
+      }}>
+        
+        {/* Category Navigation + Search Bar */}
+        <Box sx={{ 
+          p: 1, 
+          display: 'flex', 
+          gap: 1, 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}>
+          {/* Search Input */}
+          <TextField
+            inputRef={searchInputRef}
+            size="small"
+            placeholder="Search products... (F2)"
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />,
+              endAdornment: productSearch ? (
+                <IconButton size="small" onClick={() => setProductSearch('')}><Close fontSize="small" /></IconButton>
+              ) : null,
+            }}
+            sx={{ 
+              minWidth: { xs: '100%', md: 240 },
+              '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }
+            }}
+          />
+
+          {/* Category Pills */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1, 
+            overflowX: 'auto', 
+            flex: 1,
+            '&::-webkit-scrollbar': { display: 'none' },
+          }}>
+            {MOCK_CATEGORIES.map(cat => (
+              <Button
+                key={cat.name}
+                onClick={() => setActiveCategory(cat.name)}
+                sx={{ 
+                  borderRadius: 4, px: { xs: 2.5, md: 3 }, py: 1, minWidth: { xs: 90, md: 100 },
+                  bgcolor: activeCategory === cat.name ? 'primary.main' : 'background.paper',
+                  color: activeCategory === cat.name ? 'white' : 'text.primary',
+                  boxShadow: activeCategory === cat.name ? `0 4px 12px -4px ${alpha(theme.palette.primary.main, 0.4)}` : theme.shadows[1],
+                  '&:hover': { bgcolor: activeCategory === cat.name ? 'primary.dark' : alpha(theme.palette.primary.main, 0.05) },
+                  textTransform: 'none', fontWeight: 700,
+                  display: 'flex', gap: 1,
+                  fontSize: { xs: '0.8rem', md: '0.875rem' }
+                }}
+              >
+                <Typography sx={{ display: 'flex', alignItems: 'center', fontSize: { xs: 16, md: 18 } }}>{cat.icon}</Typography>
+                {cat.name}
+              </Button>
+            ))}
+          </Box>
+
+          {/* Hold / Recall Buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Hold Order (F4)">
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleHoldOrder}
+                disabled={items.length === 0}
+                startIcon={<PauseCircle />}
+                sx={{ borderRadius: 3, fontWeight: 700, textTransform: 'none', minWidth: 'auto' }}
+              >
+                Hold
+              </Button>
+            </Tooltip>
+            <Tooltip title="Recall Held Orders">
+              <Badge badgeContent={heldOrders.length} color="primary">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setHeldDrawerOpen(true)}
+                  startIcon={<PlayCircle />}
+                  sx={{ borderRadius: 3, fontWeight: 700, textTransform: 'none', minWidth: 'auto' }}
+                >
+                  Recall
+                </Button>
+              </Badge>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {/* Product Grid - Fluid Layout */}
+        <Box sx={{ flex: 1, overflowY: { xs: 'visible', lg: 'auto' }, pr: 0.5, '&::-webkit-scrollbar': { width: 4 } }}>
+          <Grid container spacing={{ xs: 1.5, md: 2 }}>
+            <AnimatePresence mode="popLayout">
+              {filteredProducts.map((product, idx) => (
+                <Grid size={{ xs: 6, sm: 4, md: 3, lg: 3 }} key={product.id}>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.02 }}>
+                    <Card 
+                      onClick={() => handleProductClick(product)}
+                      sx={{ 
+                        borderRadius: 4, overflow: 'hidden',
+                        bgcolor: 'background.paper',
+                        boxShadow: '0 4px 16px -8px rgba(0,0,0,0.08)',
+                        '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[3] }
+                      }}
+                    >
+                      <CardActionArea sx={{ p: 1 }}>
+                        <Box sx={{ height: { xs: 120, md: 160 }, borderRadius: 3, overflow: 'hidden', position: 'relative', mb: 1 }}>
+                          <img src={product.img} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <Box sx={{ position: 'absolute', bottom: 6, right: 6 }}>
+                            <Chip 
+                              label={`$${product.price.toFixed(2)}`} 
+                              sx={{ fontWeight: 800, bgcolor: 'primary.main', color: 'white', px: 0, height: 22, fontSize: '0.7rem', boxShadow: 1 }} 
+                            />
+                          </Box>
+                        </Box>
+                        <Box sx={{ px: 0.2, pb: 0.2 }}>
+                          <Typography variant="caption" fontWeight={700} noWrap display="block" sx={{ lineHeight: 1.2, mb: 0.2 }}>{product.name}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{product.sku}</Typography>
+                        </Box>
+                      </CardActionArea>
+                    </Card>
+                  </motion.div>
+                </Grid>
+              ))}
+            </AnimatePresence>
+          </Grid>
+        </Box>
+      </Box>
+
+      {/* RIGHT PANE: ORDER MANAGEMENT (Desktop) or Mobile Drawer */}
+      {!isMobile ? (
+        <Box sx={{ width: 450, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {renderCart()}
+        </Box>
+      ) : (
+        <>
+          <Fab 
+            color="primary" 
+            sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1100, width: 64, height: 64, boxShadow: theme.shadows[10] }}
+            onClick={() => setMobileCartOpen(true)}
+          >
+            <Badge badgeContent={items.length} color="error">
+              <ShoppingCart />
+            </Badge>
+          </Fab>
+          
+          <SwipeableDrawer
+            anchor="bottom"
+            open={mobileCartOpen}
+            onClose={() => setMobileCartOpen(false)}
+            onOpen={() => setMobileCartOpen(true)}
+            PaperProps={{ 
+              sx: { height: '90vh', borderTopLeftRadius: 32, borderTopRightRadius: 32, bgcolor: 'background.default', px: 2, pt: 1 } 
+            }}
+          >
+            <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 2, mx: 'auto', mb: 2 }} onClick={() => setMobileCartOpen(false)} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', pb: 2 }}>
+               {renderCart()}
+            </Box>
+          </SwipeableDrawer>
+        </>
+      )}
+
+      {/* --- CAFE MODALS --- */}
+
+      {/* CUSTOMER SELECTION - SWIFTY STYLE */}
+      <Dialog open={customerModal} onClose={() => setCustomerModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 9, p: 2 } }}>
+        <DialogTitle sx={{ fontWeight: 900, fontSize: '1.6rem', pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Customer Registry
+          <IconButton onClick={() => setCustomerModal(false)} sx={{ bgcolor: alpha(theme.palette.action.hover, 0.05) }}><Close /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 1 }}>
+          <TextField 
+            fullWidth placeholder="Locate customer account..." 
+            variant="outlined" 
+            value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            InputProps={{ 
+              startAdornment: <Search sx={{ mr: 1, color: 'primary.main' }} />, 
+              sx: { borderRadius: 5, bgcolor: '#F9F6F3', '& fieldset': { border: 'none' } } 
+            }}
+            sx={{ mb: 4 }}
+          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+             {filteredCustomers.map(c => (
+                <Button 
+                  key={c.id} fullWidth
+                  onClick={() => { setCustomer(c); setCustomerModal(false); }}
+                  sx={{ 
+                    justifyContent: 'flex-start', p: 2.5, borderRadius: 6, border: `1px solid ${theme.palette.divider}`,
+                    bgcolor: 'white', transition: '0.2s',
+                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.03), borderColor: 'primary.main', transform: 'translateX(4px)' }
+                  }}
+                >
+                  <Avatar sx={{ mr: 2.5, width: 52, height: 52, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 900, borderRadius: 4 }}>{c.name[0]}</Avatar>
+                  <Box sx={{ textAlign: 'left' }}>
+                    <Typography fontWeight={900} variant="subtitle1">{c.name}</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700}>{c.email} • <span style={{ color: theme.palette.primary.main }}>{c.points} Pts</span></Typography>
+                  </Box>
+                </Button>
+             ))}
+             <Button fullWidth variant="outlined" sx={{ borderRadius: 6, py: 2.5, borderStyle: 'dashed', borderWidth: 2, fontWeight: 900 }}>
+               + Register New Member
+             </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* PAYMENT PROCESSOR - SWIFTY STYLE */}
+      <Dialog open={paymentOpen} onClose={() => { setPaymentOpen(false); setSelectedPaymentMethod(null); }} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 10, bgcolor: '#F9F6F3', maxHeight: '90vh', overflow: 'hidden' } }}>
+        <Box sx={{ display: 'flex', height: { xs: 'auto', md: '70vh' }, flexDirection: { xs: 'column', md: 'row' } }}>
+           {/* LEFT: PAYMENT CONTROL */}
+           <Box sx={{ flex: 1, p: 6, display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ mb: 6 }}>
+                <Typography variant="overline" color="text.secondary" fontWeight={900} sx={{ letterSpacing: 2 }}>TRANSACTION SETTLEMENT</Typography>
+                <Typography variant="h1" fontWeight={900} color="primary.main" sx={{ mb: 1, letterSpacing: -2 }}>${grandTotal.toFixed(2)}</Typography>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', opacity: 0.6 }}>
+                  <InfoOutlined fontSize="small" />
+                  <Typography variant="body2" fontWeight={700}>Including 8% Sales Tax & Service Charge</Typography>
+                </Box>
+              </Box>
+
+              <Typography variant="h6" fontWeight={900} mb={3}>Settlement Channel</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 6 }}>
+                {[
+                  { id: 'cash', label: 'Cash Payment', icon: <LocalAtm /> },
+                  { id: 'card', label: 'Electronic Card', icon: <CreditCard /> },
+                  { id: 'account', label: 'Member Credit', icon: <Person /> },
+                  { id: 'qr', label: 'QR Scan / Mobile', icon: <PointOfSale /> }
+                ].map(m => (
+                  <Button 
+                    key={m.id} fullWidth variant="outlined" 
+                    startIcon={m.icon}
+                    onClick={() => setSelectedPaymentMethod(m.id)}
+                    sx={{ 
+                      p: 3, borderRadius: 6, justifyContent: 'flex-start', borderWidth: 2, fontWeight: 900, 
+                      bgcolor: selectedPaymentMethod === m.id ? alpha(theme.palette.primary.main, 0.08) : 'white', 
+                      borderColor: selectedPaymentMethod === m.id ? 'primary.main' : alpha(theme.palette.divider, 0.5),
+                      color: selectedPaymentMethod === m.id ? 'primary.main' : 'text.primary',
+                    }}
+                  >
+                    {m.label}
+                  </Button>
+                ))}
+              </Box>
+
+              <Box sx={{ flex: 1 }} />
+              
+              <Button 
+                variant="contained" fullWidth
+                disabled={!selectedPaymentMethod || items.length === 0}
+                onClick={() => {
+                  // Record the sale
+                  const sale = addSale({
+                    items: items.map(i => ({ name: i.name, sku: i.sku, quantity: i.quantity, price: i.price, discount: i.discount })),
+                    subtotal,
+                    tax,
+                    discount: discountAmount,
+                    total: grandTotal,
+                    paymentMethod: selectedPaymentMethod || 'cash',
+                    cashier: user?.email || 'Unknown',
+                    customer: customer?.name || null,
+                  });
+                  
+                  // Deduct specific BOM ingredients linked to the sold products
+                  deductStockFromSale(items.map(i => ({ productId: i.id, quantity: i.quantity })));
+                  
+                  // Push to KDS if any items are prepared (Coffee, Tea, Pastries)
+                  const kitchenItems = items
+                    .filter(i => ['Coffee', 'Tea', 'Pastries'].includes(i.category))
+                    .map(i => ({ name: i.name, quantity: i.quantity, notes: '' })); // Notes could be a future feature
+
+                  if (kitchenItems.length > 0) {
+                    addOrder({
+                      id: `kds-${sale.receiptNumber}`,
+                      receiptNumber: sale.receiptNumber,
+                      items: kitchenItems,
+                      cashier: user?.email.split('@')[0] || 'Cashier'
+                    });
+                  }
+                  
+                  logActivity('SALE_COMPLETED', `Sale ${sale.receiptNumber} for $${grandTotal.toFixed(2)} via ${selectedPaymentMethod}`);
+                  enqueue(`Sale completed: ${sale.receiptNumber} — $${grandTotal.toFixed(2)}`, 'success');
+                  setPaymentOpen(false);
+                  setSelectedPaymentMethod(null);
+                  clearCart();
+                  setCustomer(null);
+                }}
+                sx={{ py: 3, borderRadius: 7, fontSize: '1.4rem', fontWeight: 900, boxShadow: theme.shadows[15] }}
+              >
+                AUTHORIZE SETTLEMENT
+              </Button>
+           </Box>
+
+           {/* RIGHT: TACTILE RECEIPT PREVIEW */}
+           <Box sx={{ width: 440, bgcolor: 'white', p: 4, display: 'flex', flexDirection: 'column', borderLeft: `1px solid ${theme.palette.divider}`, alignItems: 'center', overflowY: 'auto' }}>
+              
+              {/* The Actual Printable Receipt Node */}
+              <Box sx={{ flex: 1, width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{ boxShadow: theme.shadows[3], border: '1px solid #e0e0e0', p: 1, mb: 3 }}>
+                  <InvoiceReceipt ref={receiptDocRef} />
+                </Box>
+              </Box>
+
+              <Button 
+                variant="outlined" fullWidth sx={{ py: 2, borderRadius: 5, fontWeight: 900, borderStyle: 'dashed', borderWidth: 2 }}
+                startIcon={<Description />}
+                onClick={() => handlePrint()}
+               >
+                 PRINT / SAVE E-RECEIPT
+              </Button>
+           </Box>
+        </Box>
+      </Dialog>
+      
+      {/* Held Orders Drawer */}
+      <Drawer anchor="right" open={heldDrawerOpen} onClose={() => setHeldDrawerOpen(false)}>
+        <Box sx={{ width: 350, p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Typography variant="h6" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PauseCircle color="primary" /> Held Orders ({heldOrders.length})
+          </Typography>
+          
+          {heldOrders.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>No orders currently on hold.</Typography>
+          ) : (
+            <List sx={{ flex: 1, overflowY: 'auto' }}>
+              {heldOrders.map((order) => (
+                <ListItem 
+                  key={order.id} 
+                  sx={{ 
+                    mb: 2, 
+                    border: `1px solid ${theme.palette.divider}`, 
+                    borderRadius: 3,
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    p: 2
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+                    <Typography fontWeight={700}>{order.customer?.name || 'Walk-in Customer'}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {order.items.length} items • ${order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                    <Button 
+                      variant="contained" 
+                      size="small" 
+                      fullWidth 
+                      startIcon={<PlayCircle />}
+                      onClick={() => handleRecallOrder(order.id)}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Recall
+                    </Button>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Box>
+      </Drawer>
+    </Box>
+  );
+}

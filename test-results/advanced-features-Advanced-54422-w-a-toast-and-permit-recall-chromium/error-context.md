@@ -1,0 +1,160 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - img [ref=e9]
+          - generic [ref=e11]:
+            - heading "SMELL CAFÉ" [level=6] [ref=e12]
+            - generic [ref=e13]: ARTISANAL POS
+        - link "ADMIN PANEL" [ref=e15] [cursor=pointer]:
+          - /url: /admin
+          - button "ADMIN PANEL" [ref=e16]:
+            - generic [ref=e17]: ADMIN PANEL
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: John Doe
+          - text: SHIFT ACTIVE
+        - button [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+        - generic [ref=e24]:
+          - button [ref=e25] [cursor=pointer]:
+            - img [ref=e26]
+          - button [ref=e29] [cursor=pointer]:
+            - img [ref=e30]
+          - button [ref=e32] [cursor=pointer]:
+            - img [ref=e33]
+          - button [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+  - generic [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e43]:
+          - img [ref=e44]
+          - textbox "Search products... (F2)" [ref=e46]
+          - group
+        - generic [ref=e47]:
+          - button "All" [ref=e48] [cursor=pointer]:
+            - paragraph [ref=e49]:
+              - img [ref=e50]
+            - text: All
+          - button "Coffee" [ref=e52] [cursor=pointer]:
+            - paragraph [ref=e53]:
+              - img [ref=e54]
+            - text: Coffee
+          - button "🍵 Tea" [ref=e56] [cursor=pointer]:
+            - paragraph [ref=e57]: 🍵
+            - text: Tea
+          - button "Pastries" [ref=e58] [cursor=pointer]:
+            - paragraph [ref=e59]:
+              - img [ref=e60]
+            - text: Pastries
+          - button "Equipment" [ref=e62] [cursor=pointer]:
+            - paragraph [ref=e63]:
+              - img [ref=e64]
+            - text: Equipment
+        - generic [ref=e67]:
+          - button "Hold Order (F4)" [ref=e68] [cursor=pointer]:
+            - img [ref=e70]
+            - text: Hold
+          - generic "Recall Held Orders" [ref=e72]:
+            - button "Recall" [ref=e73] [cursor=pointer]:
+              - img [ref=e75]
+              - text: Recall
+            - generic: "0"
+      - generic [ref=e78]:
+        - button "Terracotta Espresso $18.00 Terracotta Espresso COF-001" [active] [ref=e82] [cursor=pointer]:
+          - generic [ref=e83]:
+            - img "Terracotta Espresso" [ref=e84]
+            - generic [ref=e87]: $18.00
+          - generic [ref=e88]:
+            - generic [ref=e89]: Terracotta Espresso
+            - text: COF-001
+        - button "Caramel Macchiato $16.50 Caramel Macchiato COF-002" [ref=e93] [cursor=pointer]:
+          - generic [ref=e94]:
+            - img "Caramel Macchiato" [ref=e95]
+            - generic [ref=e98]: $16.50
+          - generic [ref=e99]:
+            - generic [ref=e100]: Caramel Macchiato
+            - text: COF-002
+        - button "Artisanal Green Tea $12.00 Artisanal Green Tea TEA-001" [ref=e104] [cursor=pointer]:
+          - generic [ref=e105]:
+            - img "Artisanal Green Tea" [ref=e106]
+            - generic [ref=e109]: $12.00
+          - generic [ref=e110]:
+            - generic [ref=e111]: Artisanal Green Tea
+            - text: TEA-001
+        - button "Classic Croissant $4.50 Classic Croissant PAS-001" [ref=e115] [cursor=pointer]:
+          - generic [ref=e116]:
+            - img "Classic Croissant" [ref=e117]
+            - generic [ref=e120]: $4.50
+          - generic [ref=e121]:
+            - generic [ref=e122]: Classic Croissant
+            - text: PAS-001
+        - button "Smell Brew Kit $35.00 Smell Brew Kit EQU-001" [ref=e126] [cursor=pointer]:
+          - generic [ref=e127]:
+            - img "Smell Brew Kit" [ref=e128]
+            - generic [ref=e131]: $35.00
+          - generic [ref=e132]:
+            - generic [ref=e133]: Smell Brew Kit
+            - text: EQU-001
+        - button "Cold Brew Oat $14.00 Cold Brew Oat COF-003" [ref=e137] [cursor=pointer]:
+          - generic [ref=e138]:
+            - img "Cold Brew Oat" [ref=e139]
+            - generic [ref=e142]: $14.00
+          - generic [ref=e143]:
+            - generic [ref=e144]: Cold Brew Oat
+            - text: COF-003
+    - generic [ref=e145]:
+      - generic [ref=e146]:
+        - button "TABLE O-24 / GUEST" [ref=e147] [cursor=pointer]:
+          - img [ref=e149]
+          - text: TABLE O-24 / GUEST
+        - button [ref=e151] [cursor=pointer]:
+          - img [ref=e152]
+      - generic [ref=e154]:
+        - heading "Current Order" [level=6] [ref=e156]
+        - generic [ref=e159] [cursor=pointer]:
+          - generic [ref=e160]:
+            - paragraph [ref=e161]: Terracotta Espresso
+            - paragraph [ref=e162]: $18.00
+          - generic [ref=e163]:
+            - generic [ref=e164]: 1x
+            - generic [ref=e165]: "@ $18.00"
+        - generic [ref=e166]:
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - generic [ref=e169]: Order Total
+              - generic [ref=e170]: $18.00
+            - generic [ref=e171]:
+              - heading "Amount Due" [level=6] [ref=e172]
+              - heading "$19.44" [level=4] [ref=e173]
+          - generic [ref=e174]:
+            - generic [ref=e175]:
+              - button "Qty" [ref=e176] [cursor=pointer]
+              - button "Disc" [ref=e177] [cursor=pointer]
+              - button "Price" [ref=e178] [cursor=pointer]
+            - generic [ref=e179]:
+              - generic [ref=e180]:
+                - button "1" [ref=e181] [cursor=pointer]
+                - button "2" [ref=e182] [cursor=pointer]
+                - button "3" [ref=e183] [cursor=pointer]
+                - button "4" [ref=e184] [cursor=pointer]
+                - button "5" [ref=e185] [cursor=pointer]
+                - button "6" [ref=e186] [cursor=pointer]
+                - button "7" [ref=e187] [cursor=pointer]
+                - button "8" [ref=e188] [cursor=pointer]
+                - button "9" [ref=e189] [cursor=pointer]
+                - button "+/-" [ref=e190] [cursor=pointer]
+                - button "0" [ref=e191] [cursor=pointer]
+                - button "." [ref=e192] [cursor=pointer]
+              - generic [ref=e193]:
+                - button [ref=e194] [cursor=pointer]:
+                  - img [ref=e195]
+                - button "PAY" [ref=e197] [cursor=pointer]:
+                  - img [ref=e198]
+                  - generic [ref=e200]: PAY
+```

@@ -1,0 +1,149 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - img [ref=e9]
+          - text: ENT
+          - generic [ref=e11]: POS
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - combobox [ref=e17] [cursor=pointer]
+          - textbox
+          - img
+          - group
+      - generic [ref=e18]:
+        - button [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+        - separator [ref=e22]
+        - link "TERMINAL" [ref=e23] [cursor=pointer]:
+          - /url: /pos
+          - button "TERMINAL" [ref=e24]:
+            - img [ref=e25]
+            - generic [ref=e27]: TERMINAL
+  - generic [ref=e29]:
+    - list [ref=e32]:
+      - listitem [ref=e33]:
+        - link "Overview" [ref=e34] [cursor=pointer]:
+          - /url: /admin
+          - button "Overview" [ref=e35]:
+            - img [ref=e37]
+            - generic [ref=e40]: Overview
+      - listitem [ref=e41]:
+        - link "Sales & History" [ref=e42] [cursor=pointer]:
+          - /url: /admin/sales
+          - button "Sales & History" [ref=e43]:
+            - img [ref=e45]
+            - generic [ref=e48]: Sales & History
+      - listitem [ref=e49]:
+        - button "Inventory" [ref=e50] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e55]: Inventory
+          - img [ref=e56]
+      - generic [ref=e61]:
+        - listitem [ref=e62]:
+          - link "All Products" [ref=e63] [cursor=pointer]:
+            - /url: /admin/inventory
+            - button "All Products" [ref=e64]:
+              - generic [ref=e66]: All Products
+        - listitem [ref=e67]:
+          - link "Categories" [ref=e68] [cursor=pointer]:
+            - /url: /admin/inventory/categories
+            - button "Categories" [ref=e69]:
+              - generic [ref=e71]: Categories
+      - listitem [ref=e72]:
+        - link "Reports Hub" [ref=e73] [cursor=pointer]:
+          - /url: /admin/reports
+          - button "Reports Hub" [ref=e74]:
+            - img [ref=e76]
+            - generic [ref=e79]: Reports Hub
+      - listitem [ref=e80]:
+        - link "Accounting" [ref=e81] [cursor=pointer]:
+          - /url: /admin/accounting
+          - button "Accounting" [ref=e82]:
+            - img [ref=e84]
+            - generic [ref=e87]: Accounting
+      - listitem [ref=e88]:
+        - link "Activity Log" [ref=e89] [cursor=pointer]:
+          - /url: /admin/activity
+          - button "Activity Log" [ref=e90]:
+            - img [ref=e92]
+            - generic [ref=e95]: Activity Log
+      - listitem [ref=e96]:
+        - button "Settings" [ref=e97] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e102]: Settings
+          - img [ref=e103]
+    - generic [ref=e105]:
+      - generic [ref=e106]:
+        - img [ref=e108]
+        - generic [ref=e109]:
+          - heading "admin" [level=6] [ref=e110]
+          - generic [ref=e111]: admin
+      - generic [ref=e112]:
+        - button [ref=e113] [cursor=pointer]:
+          - img [ref=e114]
+        - button [ref=e116] [cursor=pointer]:
+          - img [ref=e117]
+  - main [ref=e119]:
+    - generic [ref=e122]:
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - heading "Activity Log" [level=4] [ref=e125]:
+            - img [ref=e126]
+            - text: Activity Log
+          - paragraph [ref=e128]: Audit trail of all system actions. Last 0 entries.
+        - button "Clear Log" [disabled]:
+          - generic:
+            - img
+          - text: Clear Log
+      - generic [ref=e129]:
+        - img [ref=e130]
+        - generic [ref=e132]:
+          - generic [ref=e133]: Action Type
+          - generic [ref=e134]:
+            - combobox [ref=e135] [cursor=pointer]: All Actions
+            - textbox: ALL
+            - img
+            - group:
+              - generic: Action Type
+        - generic [ref=e137]:
+          - textbox "Search by user..." [ref=e138]
+          - group
+      - generic [ref=e140]:
+        - grid [ref=e141]:
+          - row "Action Details User Time" [ref=e142]:
+            - columnheader "Action" [ref=e143] [cursor=pointer]:
+              - generic [ref=e145]: Action
+              - generic [ref=e146]:
+                - img
+            - columnheader "Details" [ref=e147] [cursor=pointer]:
+              - generic [ref=e149]: Details
+              - generic [ref=e150]:
+                - img
+            - columnheader "User" [ref=e151] [cursor=pointer]:
+              - generic [ref=e153]: User
+              - generic [ref=e154]:
+                - img
+            - columnheader "Time" [ref=e155] [cursor=pointer]:
+              - generic [ref=e157]: Time
+              - generic [ref=e158]:
+                - img
+          - generic [ref=e160]: No rows
+          - rowgroup
+        - generic [ref=e164]:
+          - paragraph [ref=e165]: "Rows per page:"
+          - generic [ref=e166]:
+            - 'combobox "Rows per page: 25" [ref=e167] [cursor=pointer]': "25"
+            - textbox: "25"
+            - img
+          - paragraph [ref=e168]: 0–0 of 0
+          - generic [ref=e169]:
+            - button "Go to previous page" [disabled]:
+              - img
+            - button "Go to next page" [disabled]:
+              - img
+```
