@@ -15,8 +15,7 @@ import {
 import { 
   Visibility, 
   VisibilityOff, 
-  Store as StoreIcon,
-  Google as GoogleIcon
+  Store as StoreIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -31,7 +30,7 @@ export default function LoginPage() {
   const [error, setError] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuthStore();
+  const { login } = useAuthStore();
   const { logActivity } = useActivityStore();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -56,15 +55,6 @@ export default function LoginPage() {
     } else {
       navigate('/admin');
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    const result = await loginWithGoogle();
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-    logActivity('LOGIN', 'Google Authentication initiated', 'google-oauth');
   };
 
   return (
@@ -206,30 +196,6 @@ export default function LoginPage() {
                 {isLoading ? 'Signing In...' : 'SIGN IN'}
               </Button>
             </form>
-
-            <Box sx={{ my: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>OR</Typography>
-              <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
-            </Box>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<GoogleIcon />}
-              onClick={handleGoogleLogin}
-              sx={{ 
-                py: 1.5, 
-                borderRadius: 3, 
-                fontWeight: 700,
-                color: '#334155',
-                borderColor: '#e2e8f0',
-                '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' }
-              }}
-            >
-              Continue with Google
-            </Button>
 
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#AAAAAA', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>

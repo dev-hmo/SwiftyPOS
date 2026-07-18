@@ -60,7 +60,7 @@ const FEATURES = [
 
 const PRICING = [
   { name: 'Standard', price: '9,000 Ks', desc: 'Perfect for single-location cafes.', feat: ['1 Register', 'Product & Variant Management', 'Basic Analytics', 'Standard Support'], trial: true },
-  { name: 'Pro', price: '29,000 Ks', desc: 'For growing multi-location restaurants.', feat: ['Unlimited Registers', 'KDS Screen', 'Recipe & Ingredient Inventory', 'Stock Tracking & Alerts', 'Priority Support'], popular: true, trial: true },
+  { name: 'Pro', price: '29,000 Ks', desc: 'For growing multi-location restaurants.', feat: ['Unlimited Registers', 'KDS Screen', 'Recipe & Ingredient Inventory', 'Stock Tracking & Alerts', 'Priority Support'], popular: true },
   { name: 'Enterprise', price: '79,000 Ks', desc: 'High-volume institutional setups.', feat: ['Custom RBAC Roles', 'Multi-Store Management', 'Full Audit Trail', '24/7 Priority Support'], trial: false }
 ];
 
@@ -189,7 +189,7 @@ export default function LandingPage() {
                       </Box>
 
                       <Button fullWidth variant={plan.popular ? 'contained' : 'outlined'} size="large" onClick={() => navigate('/login')} sx={{ py: 1.5, borderRadius: 3, fontWeight: 800 }}>
-                        {plan.name === 'Enterprise' ? 'Contact Sales' : 'Start 14-Day Free Trial'}
+                        {plan.name === 'Enterprise' ? 'Contact Sales' : plan.trial ? 'Start 14-Day Free Trial' : 'Get Started'}
                       </Button>
                     </Paper>
                   </motion.div>
