@@ -6,6 +6,7 @@ import {
   ArrowRight, Store, Zap, Layers, Palette, PackageSearch
 } from 'lucide-react';
 import { useTheme, alpha } from '@mui/material/styles';
+import ChatBot from '../../components/common/ChatBot';
 
 const FEATURES = [
   {
@@ -189,7 +190,7 @@ export default function LandingPage() {
                       </Box>
 
                       <Button fullWidth variant={plan.popular ? 'contained' : 'outlined'} size="large" onClick={() => navigate('/login')} sx={{ py: 1.5, borderRadius: 3, fontWeight: 800 }}>
-                        {plan.name === 'Enterprise' || plan.name === 'Pro' ? 'Contact Sales' : plan.trial ? 'Start 14-Day Free Trial' : 'Get Started'}
+                        {'Contact Sales'}
                       </Button>
                     </Paper>
                   </motion.div>
@@ -239,6 +240,8 @@ export default function LandingPage() {
           <Typography variant="body2">© 2026 Swifty Technologies Inc. All rights reserved.</Typography>
         </Container>
       </Box>
+
+      <ChatBot />
     </Box>
   );
 }
