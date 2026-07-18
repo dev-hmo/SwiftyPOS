@@ -8,6 +8,7 @@ import type {
   CustomerFilters,
 } from '../types/superadmin';
 import { useAuthStore } from './useAuthStore';
+import { getUserEmails } from '../lib/user-emails';
 
 /* ─── Helpers ─── */
 
@@ -103,11 +104,9 @@ export const useSaaSStore = create<SaaSState>()((set, get) => ({
           .limit(1)
           .maybeSingle();
 
-        let email = 'unknown';
-        if (membership?.user_id) {
-          const { data: userData } = await supabase.auth.admin.getUserById(membership.user_id);
-          email = userData?.user?.email ?? 'unknown';
-        }
+        const adminUserId = membership?.user_id ?? null;
+        const emailResults = adminUserId ? await getUserEmails([adminUserId]) : [];
+        const email = emailResults[0]?.email ?? 'unknown';
 
         const [{ count: storeCount }, { count: userCount }] = await Promise.all([
           supabase.from('stores').select('*', { count: 'exact', head: true }).eq('tenant_id', t.id),
@@ -198,8 +197,8 @@ export const useSaaSStore = create<SaaSState>()((set, get) => ({
       .maybeSingle();
 
     if (membership?.user_id) {
-      const { data: userData } = await supabase.auth.admin.getUserById(membership.user_id);
-      email = userData?.user?.email ?? 'unknown';
+      const emailResults = await getUserEmails([membership.user_id]);
+      email = emailResults[0]?.email ?? 'unknown';
     }
 
     set({
@@ -358,16 +357,20 @@ export const useSaaSStore = create<SaaSState>()((set, get) => ({
 
     const enriched = await Promise.all(
       (requests ?? []).map(async (r) => {
-        const [{ data: tenant }, { data: requester }] = await Promise.all([
-          supabase.from('tenants').select('name').eq('id', r.tenant_id).maybeSingle(),
-          supabase.auth.admin.getUserById(r.requested_by),
-        ]);
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', r.tenant_id)
+          .maybeSingle();
+
+        const emailResults = await getUserEmails([r.requested_by]);
+        const requesterEmail = emailResults[0]?.email ?? 'unknown';
 
         return {
           ...r,
           tenant_name: tenant?.name ?? 'Unknown',
-          tenant_email: requester?.user?.email ?? 'unknown',
-          requester_email: requester?.user?.email ?? 'unknown',
+          tenant_email: requesterEmail,
+          requester_email: requesterEmail,
         } satisfies UpgradeRequestWithTenant;
       }),
     );
@@ -492,16 +495,16 @@ export const useSaaSStore = create<SaaSState>()((set, get) => ({
     const { data, error } = await query;
     if (error || !data) return;
 
-    const enriched = await Promise.all(
-      data.map(async (entry) => {
-        let actor_email: string | undefined;
-        if (entry.user_id) {
-          const { data: userData } = await supabase.auth.admin.getUserById(entry.user_id);
-          actor_email = userData?.user?.email ?? undefined;
-        }
-        return { ...entry, actor_email } satisfies SuperAdminAuditEntry;
-      }),
-    );
+    const userIds = data
+      .filter((entry) => entry.user_id)
+      .map((entry) => entry.user_id as string);
+    const emailResults = await getUserEmails(userIds);
+    const emailMap = new Map(emailResults.map((e) => [e.userId, e.email]));
+
+    const enriched = data.map((entry) => ({
+      ...entry,
+      actor_email: entry.user_id ? (emailMap.get(entry.user_id) ?? undefined) : undefined,
+    } satisfies SuperAdminAuditEntry));
 
     set({ auditLog: enriched });
   },

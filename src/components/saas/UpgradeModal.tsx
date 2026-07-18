@@ -48,7 +48,7 @@ function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
   const [selectedPlan, setSelectedPlan] = useState<PlanTier | null>(() => (targetTier as PlanTier) || 'pro');
   const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]);
   const [transactionId, setTransactionId] = useState('');
-  const [screenshotSelected, setScreenshotSelected] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -78,6 +78,28 @@ function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
 
       const planPrice = PLANS.find((p) => p.tier === selectedPlan)?.price ?? 0;
 
+      // Upload screenshot to Supabase Storage
+      let screenshotUrl: string | null = null;
+      if (screenshotFile) {
+        const ext = screenshotFile.name.split('.').pop() ?? 'png';
+        const filePath = `${user.id}/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('payment-screenshots')
+          .upload(filePath, screenshotFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) throw new Error(`Screenshot upload failed: ${uploadError.message}`);
+
+        const { data: urlData } = supabase.storage
+          .from('payment-screenshots')
+          .getPublicUrl(filePath);
+
+        screenshotUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase.from('upgrade_requests').insert({
         tenant_id: tenant.id,
         requested_by: user.id,
@@ -85,6 +107,7 @@ function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
         requested_plan: selectedPlan,
         payment_method: selectedMethod.id,
         transaction_id: transactionId,
+        screenshot_url: screenshotUrl,
         amount: planPrice,
       });
 
@@ -100,7 +123,7 @@ function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
         setSubmitError(err instanceof Error ? err.message : 'Failed to submit upgrade request.');
       }
     }
-  }, [selectedPlan, currentPlan, selectedMethod, transactionId]);
+  }, [selectedPlan, currentPlan, selectedMethod, transactionId, screenshotFile]);
 
   const steps = ['Select Plan', 'Payment Provider', 'Verification'];
 
@@ -261,23 +284,30 @@ function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
                             fullWidth
                             sx={{
                               p: 3, borderRadius: 3, borderStyle: 'dashed', borderWidth: 2,
-                              color: screenshotSelected ? 'success.main' : 'text.secondary',
-                              borderColor: screenshotSelected ? 'success.main' : 'divider'
+                              color: screenshotFile ? 'success.main' : 'text.secondary',
+                              borderColor: screenshotFile ? 'success.main' : 'divider'
                             }}
                           >
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                              <CloudUpload fontSize="large" color={screenshotSelected ? "success" : "inherit"} />
+                              <CloudUpload fontSize="large" color={screenshotFile ? "success" : "inherit"} />
                               <Typography fontWeight={700}>
-                                {screenshotSelected ? 'Screenshot Uploaded.png' : 'Upload Payment Screenshot'}
+                                {screenshotFile ? screenshotFile.name : 'Upload Payment Screenshot'}
                               </Typography>
                             </Box>
                             <input
                               type="file"
                               hidden
-                              accept="image/*"
+                              accept="image/png,image/jpeg,image/webp"
                               onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                  setScreenshotSelected(true);
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const maxBytes = 5 * 1024 * 1024;
+                                  if (file.size > maxBytes) {
+                                    setSubmitError('Screenshot must be under 5 MB.');
+                                    return;
+                                  }
+                                  setScreenshotFile(file);
+                                  setSubmitError(null);
                                 }
                               }}
                             />
@@ -318,7 +348,7 @@ function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
               <Button
                 variant="contained"
                 onClick={handleSubmit}
-                disabled={!transactionId || !screenshotSelected || isProcessing}
+                disabled={!transactionId || !screenshotFile || isProcessing}
                 sx={{ borderRadius: 3, fontWeight: 800, px: 4 }}
               >
                 {isProcessing ? <CircularProgress size={24} color="inherit" /> : 'Submit & Upgrade'}

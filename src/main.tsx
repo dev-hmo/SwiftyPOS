@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { Analytics } from '@vercel/analytics/react';
 import App from './App';
 import { getTheme } from './theme';
 import { useThemeStore } from './store/useThemeStore';
@@ -18,6 +19,7 @@ const Root = () => {
       <CssBaseline />
       <App />
       <NotificationProvider />
+      <Analytics />
     </ThemeProvider>
   );
 };

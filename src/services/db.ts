@@ -6,6 +6,7 @@ import {
   requireOwnerContext,
 } from '../lib/tenant-context';
 import type { TenantContext } from '../lib/tenant-context';
+import { getUserEmails } from '../lib/user-emails';
 
 const SYSTEM_FIELDS = new Set(['id', 'created_at', 'updated_at', 'tenant_id']);
 
@@ -173,18 +174,17 @@ export const StaffService = {
 
     if (error) throw error;
 
-    const staffList = await Promise.all(
-      (data ?? []).map(async (membership) => {
-        const { data: userData } = await supabase.auth.admin.getUserById(membership.user_id);
-        return {
-          userId: membership.user_id,
-          email: userData?.user?.email ?? 'unknown',
-          role: membership.role,
-          isActive: membership.is_active,
-          joinedAt: membership.created_at,
-        };
-      }),
-    );
+    const userIds = (data ?? []).map((m) => m.user_id);
+    const emailResults = await getUserEmails(userIds);
+    const emailMap = new Map(emailResults.map((e) => [e.userId, e.email]));
+
+    const staffList = (data ?? []).map((membership) => ({
+      userId: membership.user_id,
+      email: emailMap.get(membership.user_id) ?? 'unknown',
+      role: membership.role,
+      isActive: membership.is_active,
+      joinedAt: membership.created_at,
+    }));
 
     return staffList;
   },
