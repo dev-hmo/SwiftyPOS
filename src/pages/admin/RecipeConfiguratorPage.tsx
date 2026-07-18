@@ -6,8 +6,10 @@ import {
 } from '@mui/material';
 import { Add, Delete, Save, Kitchen } from '@mui/icons-material';
 import { useInventoryStore, type RecipeItem } from '../../store/useInventoryStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export default function RecipeConfiguratorPage() {
+  const { t } = useLanguage();
   const theme = useTheme();
   const { products, ingredients, updateProduct } = useInventoryStore();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function RecipeConfiguratorPage() {
       (i) => !draftRecipe.some((r) => r.ingredientId === i.id),
     );
     if (availableIngredients.length === 0) {
-      setSnack({ open: true, msg: 'All ingredients already in recipe', severity: 'error' });
+      setSnack({ open: true, msg: t('recipe.allInRecipe'), severity: 'error' });
       return;
     }
     setDraftRecipe((prev) => [...prev, { ingredientId: availableIngredients[0].id, quantity: 1 }]);
@@ -70,12 +72,12 @@ export default function RecipeConfiguratorPage() {
   const groupedProducts = useMemo(() => {
     const map = new Map<string, typeof products>();
     for (const p of products) {
-      const cat = p.category || 'Uncategorized';
+      const cat = p.category || t('recipe.uncategorized');
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(p);
     }
     return map;
-  }, [products]);
+  }, [products, t]);
 
   // Available ingredients for dropdown (exclude already-in-recipe)
   const availableForDropdown = useMemo(
@@ -94,8 +96,8 @@ export default function RecipeConfiguratorPage() {
       {/* LEFT: Product list */}
       <Paper elevation={0} sx={{ width: 320, flexShrink: 0, borderRadius: 4, ...glassStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Box sx={{ p: 2.5, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-          <Typography variant="h6" fontWeight={800}>Select Product</Typography>
-          <Typography variant="caption" color="text.secondary">Choose a product to configure its recipe</Typography>
+          <Typography variant="h6" fontWeight={800}>{t('recipe.selectProduct')}</Typography>
+          <Typography variant="caption" color="text.secondary">{t('recipe.selectProductDesc')}</Typography>
         </Box>
         <List sx={{ flex: 1, overflowY: 'auto', py: 0 }}>
           {Array.from(groupedProducts.entries()).map(([category, prods]) => (
@@ -147,13 +149,13 @@ export default function RecipeConfiguratorPage() {
             {/* Product header + save bar */}
             <Paper elevation={0} sx={{ p: 3, borderRadius: 4, ...glassStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography variant="overline" color="text.secondary" fontWeight={700}>RECIPE CONFIGURATOR</Typography>
+                <Typography variant="overline" color="text.secondary" fontWeight={700}>{t('recipe.configurator')}</Typography>
                 <Typography variant="h5" fontWeight={800}>{selectedProduct.name}</Typography>
                 <Typography variant="body2" color="text.secondary">{selectedProduct.sku} — {selectedProduct.category}</Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 1.5 }}>
                 {dirty && (
-                  <Chip label="Unsaved changes" color="warning" size="small" sx={{ fontWeight: 700 }} />
+                  <Chip label={t('recipe.unsaved')} color="warning" size="small" sx={{ fontWeight: 700 }} />
                 )}
                 <Button
                   variant="contained"
@@ -162,7 +164,7 @@ export default function RecipeConfiguratorPage() {
                   onClick={handleSave}
                   sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
                 >
-                  Save Recipe
+                  {t('recipe.saveRecipe')}
                 </Button>
               </Box>
             </Paper>
@@ -172,12 +174,12 @@ export default function RecipeConfiguratorPage() {
               {draftRecipe.length === 0 && (
                 <Paper elevation={0} sx={{ p: 6, borderRadius: 4, ...glassStyle, textAlign: 'center' }}>
                   <Kitchen sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" fontWeight={800} color="text.secondary">No ingredients defined</Typography>
+                  <Typography variant="h6" fontWeight={800} color="text.secondary">{t('recipe.emptyTitle')}</Typography>
                   <Typography color="text.secondary" sx={{ mb: 3 }}>
-                    Add ingredients to define how this product is made
+                    {t('recipe.emptyDesc')}
                   </Typography>
                   <Button variant="outlined" startIcon={<Add />} onClick={addIngredientRow} sx={{ borderRadius: 3, fontWeight: 700 }}>
-                    Add First Ingredient
+                    {t('recipe.addFirst')}
                   </Button>
                 </Paper>
               )}
@@ -200,10 +202,10 @@ export default function RecipeConfiguratorPage() {
                         #{index + 1}
                       </Typography>
                       <FormControl size="small" sx={{ flex: 2 }}>
-                        <InputLabel sx={{ fontWeight: 700 }}>Ingredient</InputLabel>
+                        <InputLabel sx={{ fontWeight: 700 }}>{t('recipe.ingredient')}</InputLabel>
                         <Select
                           value={item.ingredientId}
-                          label="Ingredient"
+                          label={t('recipe.ingredient')}
                           onChange={(e) => handleIngredientChange(index, 'ingredientId', e.target.value)}
                           sx={{ borderRadius: 2 }}
                         >
@@ -213,19 +215,19 @@ export default function RecipeConfiguratorPage() {
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                                 <Typography fontWeight={600}>{ing.name}</Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  {ing.stock_quantity} {ing.unit} available
+                                  {ing.stock_quantity} {ing.unit} {t('recipe.available')}
                                 </Typography>
                               </Box>
                             </MenuItem>
                           ))}
                           {availableForDropdown.length === 0 && ingredients.length === 0 && (
-                            <MenuItem disabled>No ingredients — create some first</MenuItem>
+                            <MenuItem disabled>{t('recipe.noIngredients')}</MenuItem>
                           )}
                         </Select>
                       </FormControl>
                       <TextField
                         size="small"
-                        label="Qty / unit"
+                        label={t('recipe.qty')}
                         type="number"
                         value={item.quantity}
                         onChange={(e) => handleIngredientChange(index, 'quantity', parseFloat(e.target.value) || 0)}
@@ -233,7 +235,7 @@ export default function RecipeConfiguratorPage() {
                           endAdornment: (
                             <InputAdornment position="end">
                               <Typography variant="caption" fontWeight={700} color="text.secondary">
-                                {ingredient?.unit || 'units'}
+                                {ingredient?.unit || t('recipe.units')}
                               </Typography>
                             </InputAdornment>
                           ),
@@ -269,15 +271,15 @@ export default function RecipeConfiguratorPage() {
                 disabled={availableForDropdown.length === 0}
                 sx={{ borderRadius: 3, fontWeight: 700, borderStyle: 'dashed', borderWidth: 2, py: 1.5 }}
               >
-                Add Ingredient
+                {t('recipe.addIngredient')}
               </Button>
             )}
           </>
         ) : (
           <Paper elevation={0} sx={{ flex: 1, borderRadius: 4, ...glassStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'text.secondary' }}>
             <Kitchen sx={{ fontSize: 64, mb: 2, opacity: 0.4 }} />
-            <Typography variant="h5" fontWeight={800}>Select a Product</Typography>
-            <Typography>Choose a product from the left panel to configure its recipe</Typography>
+            <Typography variant="h5" fontWeight={800}>{t('recipe.selectProductHint')}</Typography>
+            <Typography>{t('recipe.selectProductHintDesc')}</Typography>
           </Paper>
         )}
       </Box>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
+import { LanguageProvider } from './i18n/LanguageContext';
 import AdminLayout from './layouts/AdminLayout';
 import POSLayout from './layouts/POSLayout';
 import LandingPage from './pages/public/LandingPage';
@@ -43,7 +44,8 @@ const KDS_ROLES = ['admin', 'kitchen'] as const;
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
+      <LanguageProvider>
+        <Router>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Suspense fallback={<LoadingFallback />}><LoginPage /></Suspense>} />
@@ -88,7 +90,8 @@ function App() {
           {/* 404 Catch-All */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-      </Router>
+        </Router>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

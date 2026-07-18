@@ -7,9 +7,11 @@ import {
 } from '@mui/material';
 import { Add, Delete, Edit, Save, Tune, Close } from '@mui/icons-material';
 import { useInventoryStore, type ProductVariantOption } from '../../store/useInventoryStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export default function VariantsPage() {
   const theme = useTheme();
+  const { t } = useLanguage();
   const { products, updateProduct } = useInventoryStore();
 
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export default function VariantsPage() {
   const saveGroup = () => {
     const name = groupNameInput.trim();
     if (!name) {
-      setSnack({ open: true, msg: 'Group name is required', severity: 'error' });
+      setSnack({ open: true, msg: t('variants.groupRequired'), severity: 'error' });
       return;
     }
 
@@ -87,7 +89,7 @@ export default function VariantsPage() {
           });
         }
       }
-      setSnack({ open: true, msg: `Renamed to "${name}"`, severity: 'success' });
+      setSnack({ open: true, msg: `${t('variants.renamed')} "${name}"`, severity: 'success' });
     } else {
       // Create new group — add to first product as a seed, then user assigns
       const newGroupId = `vg-${Date.now()}`;
@@ -251,18 +253,18 @@ export default function VariantsPage() {
       <Paper elevation={0} sx={{ width: 300, flexShrink: 0, borderRadius: 4, ...glassStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Box sx={{ p: 2.5, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
-            <Typography variant="h6" fontWeight={800}>Variant Groups</Typography>
-            <Typography variant="caption" color="text.secondary">{variantGroups.length} defined</Typography>
+            <Typography variant="h6" fontWeight={800}>{t('variants.title')}</Typography>
+            <Typography variant="caption" color="text.secondary">{variantGroups.length} {t('variants.defined')}</Typography>
           </Box>
           <Button size="small" variant="contained" startIcon={<Add />} onClick={openCreateGroup} sx={{ borderRadius: 2, fontWeight: 700 }}>
-            New
+            {t('variants.new')}
           </Button>
         </Box>
         <List sx={{ flex: 1, overflowY: 'auto', py: 0 }}>
           {variantGroups.length === 0 && (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Tune sx={{ fontSize: 36, color: 'text.secondary', mb: 1, opacity: 0.4 }} />
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>No variant groups yet</Typography>
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>{t('variants.empty')}</Typography>
             </Box>
           )}
           {variantGroups.map((group) => (
@@ -304,7 +306,7 @@ export default function VariantsPage() {
             {/* Header Bar */}
             <Paper elevation={0} sx={{ p: 3, borderRadius: 4, ...glassStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography variant="overline" color="text.secondary" fontWeight={700}>VARIANT GROUP</Typography>
+                <Typography variant="overline" color="text.secondary" fontWeight={700}>{t('variants.group')}</Typography>
                 <Typography variant="h5" fontWeight={800}>{selectedGroup.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {selectedGroup.options.length} option{selectedGroup.options.length !== 1 ? 's' : ''} · assigned to {selectedGroupProducts.length} product{selectedGroupProducts.length !== 1 ? 's' : ''}
@@ -331,7 +333,7 @@ export default function VariantsPage() {
                   <Typography variant="h6" fontWeight={800} color="text.secondary">No options defined</Typography>
                   <Typography color="text.secondary" sx={{ mb: 3 }}>Add options like "Small", "Medium", "Large"</Typography>
                   <Button variant="outlined" startIcon={<Add />} onClick={openAddOption} sx={{ borderRadius: 3, fontWeight: 700 }}>
-                    Add First Option
+                    {t('variants.addFirstOption')}
                   </Button>
                 </Paper>
               )}
@@ -381,7 +383,7 @@ export default function VariantsPage() {
                   variant="outlined" startIcon={<Add />} onClick={openAddOption}
                   sx={{ borderRadius: 3, fontWeight: 700, borderStyle: 'dashed', borderWidth: 2, py: 1.5 }}
                 >
-                  Add Option
+                  {t('variants.addOption')}
                 </Button>
               )}
             </Box>
@@ -401,27 +403,27 @@ export default function VariantsPage() {
         ) : (
           <Paper elevation={0} sx={{ flex: 1, borderRadius: 4, ...glassStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'text.secondary' }}>
             <Tune sx={{ fontSize: 64, mb: 2, opacity: 0.4 }} />
-            <Typography variant="h5" fontWeight={800}>Select a Variant Group</Typography>
-            <Typography>Choose a group from the left panel or create a new one</Typography>
+            <Typography variant="h5" fontWeight={800}>{t('variants.selectGroup')}</Typography>
+            <Typography>{t('variants.selectGroupDesc')}</Typography>
           </Paper>
         )}
       </Box>
 
       {/* ─── Group Create/Edit Dialog ─── */}
       <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle sx={{ fontWeight: 800 }}>{editingGroupId ? 'Rename Group' : 'New Variant Group'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{editingGroupId ? t('variants.dialog.renameGroup') : t('variants.dialog.newGroup')}</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <TextField
-            fullWidth autoFocus label="Group Name (e.g. Size, Sugar Level, Milk Type)"
+            fullWidth autoFocus label={t('variants.dialog.groupName')}
             value={groupNameInput} onChange={(e) => setGroupNameInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') saveGroup(); }}
             sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button onClick={() => setGroupDialogOpen(false)} sx={{ fontWeight: 700, borderRadius: 3 }}>Cancel</Button>
+          <Button onClick={() => setGroupDialogOpen(false)} sx={{ fontWeight: 700, borderRadius: 3 }}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={saveGroup} disabled={!groupNameInput.trim()} sx={{ borderRadius: 3, fontWeight: 700, px: 3 }}>
-            {editingGroupId ? 'Rename' : 'Create'}
+            {editingGroupId ? t('variants.dialog.rename') : t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>

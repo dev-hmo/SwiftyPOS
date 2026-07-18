@@ -30,6 +30,7 @@ import { useReactToPrint } from 'react-to-print';
 import { useSalesStore } from '../../store/useSalesStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { calculateSubtotal } from '../../utils/calculations';
 
 import { useInventoryStore } from '../../store/useInventoryStore';
@@ -54,6 +55,7 @@ const MOCK_CUSTOMERS: Customer[] = [
 export default function POSPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const { t } = useLanguage();
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const { items, addItem, updateQuantity, updatePrice, updateDiscount, clearCart, customer, setCustomer } = useCartStore();
   const { enqueue } = useNotificationStore();
@@ -154,13 +156,13 @@ export default function POSPage() {
 
   // Hold current order
   const handleHoldOrder = useCallback(() => {
-    if (items.length === 0) { enqueue('Cart is empty — nothing to hold', 'warning'); return; }
+    if (items.length === 0) { enqueue(t('pos.emptyCart'), 'warning'); return; }
     const heldId = holdOrder(items, customer);
     logActivity('ORDER_HELD', `Held order ${heldId} with ${items.length} items`);
     clearCart();
     enqueue(`Order held (${items.length} items)`, 'info');
     setHeldDrawerOpen(false);
-  }, [items, customer, holdOrder, clearCart, enqueue, logActivity]);
+  }, [items, customer, holdOrder, clearCart, enqueue, logActivity, t]);
 
   // Recall a held order
   const handleRecallOrder = useCallback((id: string) => {
@@ -237,7 +239,7 @@ export default function POSPage() {
             '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }, textTransform: 'none'
           }}
         >
-          {customer ? customer.name : 'TABLE O-24 / GUEST'}
+          {customer ? customer.name : t('pos.tableGuest')}
         </Button>
         <IconButton onClick={clearCart} sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 3, width: 48, height: 48 }}>
           <Delete />
@@ -247,7 +249,7 @@ export default function POSPage() {
       {/* Cart Container */}
       <Paper elevation={0} sx={{ flex: 1, borderRadius: 5, ...glassStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`, flexShrink: 0 }}>
-          <Typography variant="subtitle1" fontWeight={800}>Current Order</Typography>
+          <Typography variant="subtitle1" fontWeight={800}>{t('pos.currentOrder')}</Typography>
         </Box>
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2, minHeight: 0 }}>
           <AnimatePresence initial={false}>
@@ -290,11 +292,11 @@ export default function POSPage() {
         <Box sx={{ p: 2, bgcolor: alpha(theme.palette.background.paper, 0.8), borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`, flexShrink: 0 }}>
           <Box sx={{ mb: 1.5 }}>
              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" fontWeight={700} color="text.secondary">Order Total</Typography>
+                <Typography variant="caption" fontWeight={700} color="text.secondary">{t('pos.orderTotal')}</Typography>
                 <Typography variant="caption" fontWeight={800}>${subtotal.toFixed(2)}</Typography>
              </Box>
              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <Typography variant="subtitle2" fontWeight={800}>Amount Due</Typography>
+                <Typography variant="subtitle2" fontWeight={800}>{t('pos.amountDue')}</Typography>
                 <Typography variant="h5" fontWeight={800} color="primary.main" sx={{ letterSpacing: -1 }}>${grandTotal.toFixed(2)}</Typography>
              </Box>
           </Box>
@@ -314,19 +316,23 @@ export default function POSPage() {
                     {k}
                   </Button>
                 ))}
-                {(['Qty', 'Disc', 'Price'] as const).map(mode => (
+                {([
+                  { key: 'Qty' as const, label: t('pos.qty') },
+                  { key: 'Disc' as const, label: t('pos.disc') },
+                  { key: 'Price' as const, label: t('pos.price') },
+                ]).map(mode => (
                   <Button 
-                    key={mode}
-                    onClick={() => setNumpadMode(mode)}
+                    key={mode.key}
+                    onClick={() => setNumpadMode(mode.key)}
                     sx={{ 
                       borderRadius: 2, py: 0.8, minHeight: 36, fontWeight: 700, fontSize: '0.75rem',
-                      bgcolor: numpadMode === mode ? 'primary.main' : 'white',
-                      color: numpadMode === mode ? 'white' : 'text.secondary',
-                      boxShadow: numpadMode === mode ? theme.shadows[2] : theme.shadows[1],
-                      '&:hover': { bgcolor: numpadMode === mode ? 'primary.dark' : alpha(theme.palette.primary.main, 0.06) }
+                      bgcolor: numpadMode === mode.key ? 'primary.main' : 'white',
+                      color: numpadMode === mode.key ? 'white' : 'text.secondary',
+                      boxShadow: numpadMode === mode.key ? theme.shadows[2] : theme.shadows[1],
+                      '&:hover': { bgcolor: numpadMode === mode.key ? 'primary.dark' : alpha(theme.palette.primary.main, 0.06) }
                     }}
                   >
-                    {mode}
+                    {mode.label}
                   </Button>
                 ))}
                 <Button 
@@ -347,7 +353,7 @@ export default function POSPage() {
                   disabled={items.length === 0}
                   sx={{ borderRadius: 2, py: 0.8, minHeight: 36, fontWeight: 800, fontSize: '0.85rem', boxShadow: theme.shadows[4] }}
                 >
-                  PAY
+                  {t('pos.pay')}
                 </Button>
              </Box>
           </Box>
@@ -390,7 +396,7 @@ export default function POSPage() {
           <TextField
             inputRef={searchInputRef}
             size="small"
-            placeholder="Search products... (F2)"
+            placeholder={t('pos.search')}
             value={productSearch}
             onChange={(e) => setProductSearch(e.target.value)}
             InputProps={{
@@ -448,7 +454,7 @@ export default function POSPage() {
                 startIcon={<PauseCircle />}
                 sx={{ borderRadius: 3, fontWeight: 700, textTransform: 'none', minWidth: 'auto' }}
               >
-                Hold
+                {t('pos.hold')}
               </Button>
             </Tooltip>
             <Tooltip title="Recall Held Orders">
@@ -460,7 +466,7 @@ export default function POSPage() {
                   startIcon={<PlayCircle />}
                   sx={{ borderRadius: 3, fontWeight: 700, textTransform: 'none', minWidth: 'auto' }}
                 >
-                  Recall
+                  {t('pos.recall')}
                 </Button>
               </Badge>
             </Tooltip>
@@ -552,7 +558,7 @@ export default function POSPage() {
       >
         <DialogTitle sx={{ fontWeight: 900, fontSize: '1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
-            Choose Options for
+            {t('pos.variantPicker')}
             <Typography component="span" color="primary.main" sx={{ ml: 1 }}>{selectedProductForVariants?.name}</Typography>
           </Box>
           <IconButton onClick={() => { setVariantPickerOpen(false); setSelectedProductForVariants(null); setSelectedVariantOptions({}); }}>
@@ -593,19 +599,19 @@ export default function POSPage() {
           ))}
 
           {selectedProductForVariants?.variantGroups?.length === 0 && (
-            <Typography color="text.secondary" align="center" sx={{ py: 4 }}>No variants configured for this product.</Typography>
+            <Typography color="text.secondary" align="center" sx={{ py: 4 }}>{t('pos.noVariants')}</Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
           <Button onClick={() => { setVariantPickerOpen(false); setSelectedProductForVariants(null); setSelectedVariantOptions({}); }} sx={{ fontWeight: 700, borderRadius: 3 }}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="contained"
             onClick={handleVariantConfirm}
             sx={{ borderRadius: 3, fontWeight: 800, px: 4 }}
           >
-            Add to Cart
+            {t('pos.addToCart')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -613,12 +619,12 @@ export default function POSPage() {
       {/* CUSTOMER SELECTION - SWIFTY STYLE */}
       <Dialog open={customerModal} onClose={() => setCustomerModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 9, p: 2 } }}>
         <DialogTitle sx={{ fontWeight: 900, fontSize: '1.6rem', pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Customer Registry
+          {t('pos.customerTitle')}
           <IconButton onClick={() => setCustomerModal(false)} sx={{ bgcolor: alpha(theme.palette.action.hover, 0.05) }}><Close /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ mt: 1 }}>
           <TextField 
-            fullWidth placeholder="Locate customer account..." 
+            fullWidth placeholder={t('pos.customerSearch')} 
             variant="outlined" 
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             InputProps={{ 
@@ -658,7 +664,7 @@ export default function POSPage() {
            {/* LEFT: PAYMENT CONTROL */}
            <Box sx={{ flex: 1, p: 6, display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ mb: 6 }}>
-                <Typography variant="overline" color="text.secondary" fontWeight={900} sx={{ letterSpacing: 2 }}>TRANSACTION SETTLEMENT</Typography>
+                <Typography variant="overline" color="text.secondary" fontWeight={900} sx={{ letterSpacing: 2 }}>{t('pos.settlement')}</Typography>
                 <Typography variant="h1" fontWeight={900} color="primary.main" sx={{ mb: 1, letterSpacing: -2 }}>${grandTotal.toFixed(2)}</Typography>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', opacity: 0.6 }}>
                   <InfoOutlined fontSize="small" />
@@ -669,10 +675,10 @@ export default function POSPage() {
               <Typography variant="h6" fontWeight={900} mb={3}>Settlement Channel</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 6 }}>
                 {[
-                  { id: 'cash', label: 'Cash Payment', icon: <LocalAtm /> },
-                  { id: 'card', label: 'Electronic Card', icon: <CreditCard /> },
-                  { id: 'account', label: 'Member Credit', icon: <Person /> },
-                  { id: 'qr', label: 'QR Scan / Mobile', icon: <PointOfSale /> }
+                  { id: 'cash', label: t('pos.cash'), icon: <LocalAtm /> },
+                  { id: 'card', label: t('pos.card'), icon: <CreditCard /> },
+                  { id: 'account', label: t('pos.memberCredit'), icon: <Person /> },
+                  { id: 'qr', label: t('pos.qrMobile'), icon: <PointOfSale /> }
                 ].map(m => (
                   <Button 
                     key={m.id} fullWidth variant="outlined" 
@@ -743,7 +749,7 @@ export default function POSPage() {
                 }}
                 sx={{ py: 3, borderRadius: 7, fontSize: '1.4rem', fontWeight: 900, boxShadow: theme.shadows[15] }}
               >
-                AUTHORIZE SETTLEMENT
+                {t('pos.authorize')}
               </Button>
            </Box>
 
@@ -762,7 +768,7 @@ export default function POSPage() {
                 startIcon={<Description />}
                 onClick={() => handlePrint()}
                >
-                 PRINT / SAVE E-RECEIPT
+                 {t('pos.printReceipt')}
               </Button>
            </Box>
         </Box>
@@ -776,7 +782,7 @@ export default function POSPage() {
           </Typography>
           
           {heldOrders.length === 0 ? (
-            <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>No orders currently on hold.</Typography>
+            <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>{t('pos.noHeld')}</Typography>
           ) : (
             <List sx={{ flex: 1, overflowY: 'auto' }}>
               {heldOrders.map((order) => (
@@ -792,7 +798,7 @@ export default function POSPage() {
                   }}
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
-                    <Typography fontWeight={700}>{order.customer?.name || 'Walk-in Customer'}</Typography>
+                    <Typography fontWeight={700}>{order.customer?.name || t('pos.walkinCustomer')}</Typography>
                     <Typography variant="caption" color="text.secondary">
                       {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Typography>

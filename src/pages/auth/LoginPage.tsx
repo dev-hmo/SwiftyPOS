@@ -20,6 +20,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useActivityStore } from '../../store/useActivityStore';
+import { useLanguage } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../../components/common/LanguageSwitcher';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
@@ -32,6 +34,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const { logActivity } = useActivityStore();
+  const { t } = useLanguage();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,10 +124,10 @@ export default function LoginPage() {
                 <StoreIcon sx={{ fontSize: 32 }} />
               </Box>
               <Typography variant="h4" fontWeight={900} sx={{ letterSpacing: -1, color: '#2D2D2D', mb: 1 }}>
-                Welcome back
+                {t('login.welcome')}
               </Typography>
               <Typography sx={{ color: '#6A6A6A', fontWeight: 500 }}>
-                Sign in to your account
+                {t('login.subtitle')}
               </Typography>
             </Box>
 
@@ -133,7 +136,7 @@ export default function LoginPage() {
             <form onSubmit={handleLogin}>
               <TextField
                 fullWidth
-                label="Email Address"
+                label={t('login.email')}
                 type="email"
                 variant="outlined"
                 margin="normal"
@@ -149,7 +152,7 @@ export default function LoginPage() {
               />
               <TextField
                 fullWidth
-                label="Password"
+                label={t('login.password')}
                 type={showPassword ? 'text' : 'password'}
                 variant="outlined"
                 margin="normal"
@@ -193,14 +196,17 @@ export default function LoginPage() {
                   }
                 }}
               >
-                {isLoading ? 'Signing In...' : 'SIGN IN'}
+                {isLoading ? t('login.signInLoading') : t('login.signIn')}
               </Button>
             </form>
 
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#AAAAAA', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>
-                Protected by Swifty Identity
+                {t('login.protected')}
               </Typography>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                <LanguageSwitcher />
+              </Box>
             </Box>
           </Card>
         </motion.div>

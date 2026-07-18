@@ -27,8 +27,10 @@ import {
 import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export default function CategoriesPage() {
+  const { t } = useLanguage();
   const theme = useTheme();
   const { categories, addCategory } = useConfigStore();
   const [open, setOpen] = React.useState(false);
@@ -54,10 +56,10 @@ export default function CategoriesPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
         <Box>
           <Typography variant="h3" sx={{ fontWeight: 900, letterSpacing: -1.5, mb: 1, color: 'text.primary' }}>
-            Product Categories
+            {t('categories.title')}
           </Typography>
           <Typography variant="h6" color="text.secondary" fontWeight={500}>
-            Structure your inventory with intuitive nested groupings.
+            {t('categories.subtitle')}
           </Typography>
         </Box>
         <Button 
@@ -67,7 +69,7 @@ export default function CategoriesPage() {
           sx={{ borderRadius: 3, px: 3, py: 1.2, fontWeight: 700, boxShadow: theme.shadows[2] }} 
           onClick={handleOpen}
         >
-          Add Category
+          {t('categories.add')}
         </Button>
       </Box>
 
@@ -137,7 +139,7 @@ export default function CategoriesPage() {
                         size="small" 
                         sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none' }}
                       >
-                        View Products
+                        {t('categories.viewProducts')}
                       </Button>
                     </Box>
                   </CardContent>
@@ -161,12 +163,12 @@ export default function CategoriesPage() {
         </DialogTitle>
         <DialogContent>
           <Typography color="text.secondary" mb={2} variant="body2" fontWeight={500}>
-            Organize your menu structure for the terminal and internal reports.
+            {t('categories.dialog.desc')}
           </Typography>
           <TextField
             autoFocus
             margin="dense"
-            label="Category Name"
+            label={t('categories.dialog.name')}
             fullWidth
             variant="outlined"
             size="medium"
@@ -180,14 +182,14 @@ export default function CategoriesPage() {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <Button onClick={handleClose} sx={{ borderRadius: 2, fontWeight: 700, px: 2 }}>Cancel</Button>
+          <Button onClick={handleClose} sx={{ borderRadius: 2, fontWeight: 700, px: 2 }}>{t('common.cancel')}</Button>
           <Button 
             onClick={handleCreate} 
             variant="contained" 
             sx={{ borderRadius: 2.5, fontWeight: 700, px: 3, py: 1 }}
             disabled={!newCatName.trim()}
           >
-            Create Category
+          {t('categories.dialog.title')}
           </Button>
         </DialogActions>
       </Dialog>

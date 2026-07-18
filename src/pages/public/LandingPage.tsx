@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Box, Container, Typography, Button, Grid, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -7,63 +8,8 @@ import {
 } from 'lucide-react';
 import { useTheme, alpha } from '@mui/material/styles';
 import ChatBot from '../../components/common/ChatBot';
-
-const FEATURES = [
-  {
-    title: 'Lightning Fast POS',
-    description: 'Intercept barcode scans and process multi-item checkout flows in under 100ms. Hold and recall orders on the fly.',
-    icon: Zap,
-    color: '#f59e0b'
-  },
-  {
-    title: 'Product Variants',
-    description: 'Offer Size, Sugar Level, and custom option groups with automatic price modifiers — all configurable per product.',
-    icon: Layers,
-    color: '#8b5cf6'
-  },
-  {
-    title: 'Recipe & Ingredient Engine',
-    description: 'Define Bill of Materials per product. Sell an espresso and auto-deduct 18g of beans from stock in real time.',
-    icon: ChefHat,
-    color: '#10b981'
-  },
-  {
-    title: 'Smart Stock Tracking',
-    description: 'Low-stock alerts, ingredient cost tracking, and full stock history with manual adjustment and audit trail.',
-    icon: PackageSearch,
-    color: '#ef4444'
-  },
-  {
-    title: 'Kitchen Display System',
-    description: 'Keep your line cooks in sync with SLA-bound color-coded digital tickets and real-time order status updates.',
-    icon: Terminal,
-    color: '#3b82f6'
-  },
-  {
-    title: 'RBAC Security',
-    description: 'Granular permissions isolating cashiers, kitchen staff, and administrators. Built-in role templates with custom access.',
-    icon: ShieldCheck,
-    color: '#6366f1'
-  },
-  {
-    title: 'Store Branding',
-    description: 'Upload your store logo, customize receipt footers, and configure tax rates — all from a single settings page.',
-    icon: Palette,
-    color: '#ec4899'
-  },
-  {
-    title: 'Enterprise Analytics',
-    description: 'Data-driven insights into inventory valuations, gross margins, cashier performance, and daily sales reports.',
-    icon: BarChart3,
-    color: '#14b8a6'
-  }
-];
-
-const PRICING = [
-  { name: 'Standard', price: '9,000 Ks', desc: 'Perfect for single-location cafes.', feat: ['1 Register', 'Product & Variant Management', 'Basic Analytics', 'Standard Support'], trial: true },
-  { name: 'Pro', price: '29,000 Ks', desc: 'For growing multi-location restaurants.', feat: ['Unlimited Registers', 'KDS Screen', 'Recipe & Ingredient Inventory', 'Stock Tracking & Alerts', 'Priority Support'], popular: true },
-  { name: 'Enterprise', price: '79,000 Ks', desc: 'High-volume institutional setups.', feat: ['Custom RBAC Roles', 'Multi-Store Management', 'Full Audit Trail', '24/7 Priority Support'], trial: false }
-];
+import { useLanguage } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../../components/common/LanguageSwitcher';
 
 const LOCAL_PAYMENTS = [
   { name: 'KBZPay', color: '#1B65A6', logo: '/payments/kbzpay.png' },
@@ -75,6 +21,64 @@ const LOCAL_PAYMENTS = [
 export default function LandingPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const FEATURES = useMemo(() => [
+    {
+      title: t('landing.features.pos.title'),
+      description: t('landing.features.pos.desc'),
+      icon: Zap,
+      color: '#f59e0b'
+    },
+    {
+      title: t('landing.features.variants.title'),
+      description: t('landing.features.variants.desc'),
+      icon: Layers,
+      color: '#8b5cf6'
+    },
+    {
+      title: t('landing.features.recipe.title'),
+      description: t('landing.features.recipe.desc'),
+      icon: ChefHat,
+      color: '#10b981'
+    },
+    {
+      title: t('landing.features.stock.title'),
+      description: t('landing.features.stock.desc'),
+      icon: PackageSearch,
+      color: '#ef4444'
+    },
+    {
+      title: t('landing.features.kds.title'),
+      description: t('landing.features.kds.desc'),
+      icon: Terminal,
+      color: '#3b82f6'
+    },
+    {
+      title: t('landing.features.rbac.title'),
+      description: t('landing.features.rbac.desc'),
+      icon: ShieldCheck,
+      color: '#6366f1'
+    },
+    {
+      title: t('landing.features.branding.title'),
+      description: t('landing.features.branding.desc'),
+      icon: Palette,
+      color: '#ec4899'
+    },
+    {
+      title: t('landing.features.analytics.title'),
+      description: t('landing.features.analytics.desc'),
+      icon: BarChart3,
+      color: '#14b8a6'
+    }
+  ], [t]);
+
+  const PRICING = useMemo(() => [
+    { name: t('landing.pricing.standard.name'), price: t('landing.pricing.standard.price'), desc: t('landing.pricing.standard.desc'), feat: [t('landing.pricing.standard.feat1'), t('landing.pricing.standard.feat2'), t('landing.pricing.standard.feat3'), t('landing.pricing.standard.feat4')], trial: true },
+    { name: t('landing.pricing.pro.name'), price: t('landing.pricing.pro.price'), desc: t('landing.pricing.pro.desc'), feat: [t('landing.pricing.pro.feat1'), t('landing.pricing.pro.feat2'), t('landing.pricing.pro.feat3'), t('landing.pricing.pro.feat4'), t('landing.pricing.pro.feat5')], popular: true },
+    { name: t('landing.pricing.enterprise.name'), price: t('landing.pricing.enterprise.price'), desc: t('landing.pricing.enterprise.desc'), feat: [t('landing.pricing.enterprise.feat1'), t('landing.pricing.enterprise.feat2'), t('landing.pricing.enterprise.feat3'), t('landing.pricing.enterprise.feat4')], trial: false }
+  ], [t]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', overflowX: 'hidden' }}>
@@ -86,20 +90,21 @@ export default function LandingPage() {
               <Store size={24} />
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', letterSpacing: -0.5 }}>
-              Swifty <span style={{ color: theme.palette.text.secondary, fontWeight: 300 }}>POS</span>
+              {t('brand.short')} <span style={{ color: theme.palette.text.secondary, fontWeight: 300 }}>POS</span>
             </Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4, alignItems: 'center' }}>
-            {['Features', 'Pricing'].map(item => (
+            {[t('landing.nav.features'), t('landing.nav.pricing')].map(item => (
               <Typography key={item} sx={{ fontWeight: 600, color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}>{item}</Typography>
             ))}
+            <LanguageSwitcher />
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button variant="outlined" color="inherit" onClick={() => navigate('/login')} sx={{ display: { xs: 'none', sm: 'flex' }, borderRadius: 3, px: 3, fontWeight: 700, borderColor: 'divider' }}>
-              Sign In
+              {t('landing.nav.signIn')}
             </Button>
             <Button variant="contained" endIcon={<ArrowRight size={18} />} onClick={() => navigate('/login')} sx={{ borderRadius: 3, px: { xs: 2, sm: 3 }, py: 1, fontWeight: 800, boxShadow: `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` }}>
-              Try Free
+              {t('landing.nav.tryFree')}
             </Button>
           </Box>
         </Container>
@@ -109,23 +114,23 @@ export default function LandingPage() {
       <Container maxWidth="lg" sx={{ pt: { xs: 20, md: 28 }, pb: 16, textAlign: 'center' }}>
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', px: 2, py: 0.5, borderRadius: 10, mb: 4, fontWeight: 800, fontSize: '0.875rem' }}>
-            <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>✨</span> Announcing Swifty POS 2.0
+            <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>✨</span> {t('landing.hero.badge')}
           </Box>
           <Typography variant="h1" sx={{ fontSize: { xs: '3rem', md: '5.5rem' }, fontWeight: 900, letterSpacing: -2, lineHeight: 1.1, color: '#0f172a', mb: 3 }}>
-            The retail OS that moves at the <br/>
+            {t('landing.hero.title')} <br/>
             <span style={{ background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              speed of your business.
+              {t('landing.hero.titleHighlight')}
             </span>
           </Typography>
           <Typography variant="h5" sx={{ color: '#64748b', mb: 6, maxWidth: 700, mx: 'auto', fontWeight: 400, lineHeight: 1.5 }}>
-            Point of sale, kitchen display, product variants, recipe-based inventory, and automated stock tracking — all in one stunningly simple interface.
+            {t('landing.hero.subtitle')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
             <Button variant="contained" size="large" onClick={() => navigate('/login')} sx={{ py: 2, px: 5, borderRadius: 4, fontSize: '1.1rem', fontWeight: 800, boxShadow: `0 20px 40px -10px ${alpha(theme.palette.primary.main, 0.5)}` }}>
-              Start 14-Day Free Trial
+              {t('landing.hero.ctaTrial')}
             </Button>
             <Button variant="outlined" size="large" onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })} sx={{ py: 2, px: 5, borderRadius: 4, fontSize: '1.1rem', fontWeight: 700, color: '#334155', borderColor: '#cbd5e1' }}>
-              Explore Features
+              {t('landing.hero.ctaFeatures')}
             </Button>
           </Box>
         </motion.div>
@@ -134,8 +139,8 @@ export default function LandingPage() {
       {/* FEATURE GRID */}
       <Box sx={{ bgcolor: 'white', py: 16, borderTop: '1px solid #f1f5f9' }}>
         <Container maxWidth="lg">
-          <Typography variant="h3" textAlign="center" fontWeight={900} mb={2} color="#0f172a">Everything you need to scale</Typography>
-          <Typography variant="h6" textAlign="center" color="text.secondary" mb={10} fontWeight={400}>From checkout to kitchen to inventory — run your entire store from the cloud.</Typography>
+          <Typography variant="h3" textAlign="center" fontWeight={900} mb={2} color="#0f172a">{t('landing.features.sectionTitle')}</Typography>
+          <Typography variant="h6" textAlign="center" color="text.secondary" mb={10} fontWeight={400}>{t('landing.features.sectionSubtitle')}</Typography>
           
           <Grid container spacing={4}>
             {FEATURES.map((feat, i) => (
@@ -158,8 +163,8 @@ export default function LandingPage() {
       {/* PRICING */}
       <Box sx={{ py: 16, bgcolor: '#f8fafc' }}>
         <Container maxWidth="lg">
-           <Typography variant="h3" textAlign="center" fontWeight={900} mb={2} color="#0f172a">Simple, transparent pricing</Typography>
-           <Typography variant="h6" textAlign="center" color="text.secondary" mb={10} fontWeight={400}>No hidden fees. Cancel anytime.</Typography>
+           <Typography variant="h3" textAlign="center" fontWeight={900} mb={2} color="#0f172a">{t('landing.pricing.sectionTitle')}</Typography>
+           <Typography variant="h6" textAlign="center" color="text.secondary" mb={10} fontWeight={400}>{t('landing.pricing.sectionSubtitle')}</Typography>
 
            <Grid container spacing={4} alignItems="stretch">
               {PRICING.map((plan, i) => (
@@ -168,13 +173,13 @@ export default function LandingPage() {
                     <Paper elevation={plan.popular ? 8 : 0} sx={{ p: 5, borderRadius: 6, position: 'relative', border: plan.popular ? `2px solid ${theme.palette.primary.main}` : '1px solid #e2e8f0', bgcolor: 'white', display: 'flex', flexDirection: 'column', width: '100%' }}>
                       {plan.popular && (
                         <Box sx={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', bgcolor: 'primary.main', color: 'white', px: 2, py: 0.5, borderRadius: 10, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
-                          Most Popular
+                          {t('landing.pricing.popular')}
                         </Box>
                       )}
                       <Typography variant="h5" fontWeight={800} color={plan.popular ? 'primary.main' : '#0f172a'} mb={1}>{plan.name}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 2 }}>
                         <Typography variant="h3" fontWeight={900}>{plan.price}</Typography>
-                        {plan.price !== 'Custom' && <Typography color="text.secondary" fontWeight={600} ml={1}>/mo</Typography>}
+                        {plan.price !== 'Custom' && <Typography color="text.secondary" fontWeight={600} ml={1}>{t('landing.pricing.perMonth')}</Typography>}
                       </Box>
                       <Typography color="text.secondary" mb={4}>{plan.desc}</Typography>
                       
@@ -190,7 +195,7 @@ export default function LandingPage() {
                       </Box>
 
                       <Button fullWidth variant={plan.popular ? 'contained' : 'outlined'} size="large" onClick={() => navigate('/login')} sx={{ py: 1.5, borderRadius: 3, fontWeight: 800 }}>
-                        {'Contact Sales'}
+                        {t('landing.pricing.contactSales')}
                       </Button>
                     </Paper>
                   </motion.div>
@@ -201,10 +206,10 @@ export default function LandingPage() {
            {/* Local Payment Trust Section */}
            <Box sx={{ mt: 12, textAlign: 'center' }}>
              <Typography variant="overline" fontWeight={800} color="primary" sx={{ letterSpacing: 2 }}>
-               Localized for Myanmar SMEs
+               {t('landing.payments.overline')}
              </Typography>
              <Typography variant="h4" fontWeight={900} mt={1} mb={4} color="#0f172a">
-               Pay with local digital wallets
+               {t('landing.payments.title')}
              </Typography>
              <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 2, md: 5 }, flexWrap: 'wrap' }}>
                {LOCAL_PAYMENTS.map(pay => (
@@ -235,9 +240,9 @@ export default function LandingPage() {
             <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: alpha('#ffffff', 0.1), display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
               <Store size={18} />
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: 'white' }}>Swifty POS</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: 'white' }}>{t('brand.name')}</Typography>
           </Box>
-          <Typography variant="body2">© 2026 Swifty Technologies Inc. All rights reserved.</Typography>
+          <Typography variant="body2">{t('landing.footer.copyright')}</Typography>
         </Container>
       </Box>
 

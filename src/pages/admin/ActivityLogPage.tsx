@@ -11,25 +11,40 @@ import {
 } from '@mui/icons-material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useActivityStore, type ActivityAction } from '../../store/useActivityStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
-const ACTION_CONFIG: Record<ActivityAction, { color: string; icon: React.ReactElement; label: string }> = {
-  LOGIN: { color: '#10b981', icon: <Login fontSize="small" />, label: 'Login' },
-  LOGOUT: { color: '#6b7280', icon: <Logout fontSize="small" />, label: 'Logout' },
-  SALE_COMPLETED: { color: '#E07B39', icon: <ShoppingCart fontSize="small" />, label: 'Sale' },
-  REFUND: { color: '#ef4444', icon: <Undo fontSize="small" />, label: 'Refund' },
-  PRODUCT_ADDED: { color: '#3b82f6', icon: <Add fontSize="small" />, label: 'Product Added' },
-  PRODUCT_UPDATED: { color: '#8b5cf6', icon: <Edit fontSize="small" />, label: 'Product Updated' },
-  PRODUCT_DELETED: { color: '#ef4444', icon: <Delete fontSize="small" />, label: 'Product Deleted' },
-  SETTINGS_CHANGED: { color: '#f59e0b', icon: <Settings fontSize="small" />, label: 'Settings' },
-  ORDER_HELD: { color: '#6366f1', icon: <PauseCircle fontSize="small" />, label: 'Order Held' },
-  ORDER_RECALLED: { color: '#14b8a6', icon: <PlayCircle fontSize="small" />, label: 'Order Recalled' },
+const ACTION_ICONS: Record<ActivityAction, { color: string; icon: React.ReactElement }> = {
+  LOGIN: { color: '#10b981', icon: <Login fontSize="small" /> },
+  LOGOUT: { color: '#6b7280', icon: <Logout fontSize="small" /> },
+  SALE_COMPLETED: { color: '#E07B39', icon: <ShoppingCart fontSize="small" /> },
+  REFUND: { color: '#ef4444', icon: <Undo fontSize="small" /> },
+  PRODUCT_ADDED: { color: '#3b82f6', icon: <Add fontSize="small" /> },
+  PRODUCT_UPDATED: { color: '#8b5cf6', icon: <Edit fontSize="small" /> },
+  PRODUCT_DELETED: { color: '#ef4444', icon: <Delete fontSize="small" /> },
+  SETTINGS_CHANGED: { color: '#f59e0b', icon: <Settings fontSize="small" /> },
+  ORDER_HELD: { color: '#6366f1', icon: <PauseCircle fontSize="small" /> },
+  ORDER_RECALLED: { color: '#14b8a6', icon: <PlayCircle fontSize="small" /> },
 };
 
 export default function ActivityLogPage() {
+  const { t } = useLanguage();
   const theme = useTheme();
   const { entries, clearLog } = useActivityStore();
   const [filterAction, setFilterAction] = useState<string>('ALL');
   const [searchUser, setSearchUser] = useState('');
+
+  const ACTION_LABELS: Record<ActivityAction, string> = {
+    LOGIN: t('activity.login'),
+    LOGOUT: t('activity.logout'),
+    SALE_COMPLETED: t('activity.sale'),
+    REFUND: t('activity.refund'),
+    PRODUCT_ADDED: t('activity.productAdded'),
+    PRODUCT_UPDATED: t('activity.productUpdated'),
+    PRODUCT_DELETED: t('activity.productDeleted'),
+    SETTINGS_CHANGED: t('activity.settings'),
+    ORDER_HELD: t('activity.orderHeld'),
+    ORDER_RECALLED: t('activity.orderRecalled'),
+  };
 
   const filteredEntries = useMemo(() => {
     return entries.filter((e) => {
@@ -42,15 +57,16 @@ export default function ActivityLogPage() {
   const columns: GridColDef[] = [
     {
       field: 'action',
-      headerName: 'Action',
+      headerName: t('activity.col.action'),
       width: 180,
       flex: 0.8,
       renderCell: (params) => {
-        const config = ACTION_CONFIG[params.value as ActivityAction];
+        const config = ACTION_ICONS[params.value as ActivityAction];
+        const label = ACTION_LABELS[params.value as ActivityAction] || params.value;
         return (
           <Chip
             icon={config ? config.icon : undefined}
-            label={config?.label || params.value}
+            label={label}
             size="small"
             sx={{
               bgcolor: alpha(config?.color || '#666', 0.1),
@@ -63,11 +79,11 @@ export default function ActivityLogPage() {
         );
       },
     },
-    { field: 'details', headerName: 'Details', minWidth: 300, flex: 2 },
-    { field: 'userId', headerName: 'User', width: 150, flex: 0.5 },
+    { field: 'details', headerName: t('activity.col.details'), minWidth: 300, flex: 2 },
+    { field: 'userId', headerName: t('activity.col.user'), width: 150, flex: 0.5 },
     {
       field: 'timestamp',
-      headerName: 'Time',
+      headerName: t('activity.col.time'),
       width: 200,
       flex: 0.8,
       valueFormatter: (val) => new Date(val as number).toLocaleString(),
@@ -80,7 +96,7 @@ export default function ActivityLogPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Timeline color="primary" /> Activity Log
+            <Timeline color="primary" /> {t('activity.title')}
           </Typography>
           <Typography color="text.secondary">
             Audit trail of all system actions. Last {entries.length} entries.
@@ -94,7 +110,7 @@ export default function ActivityLogPage() {
           disabled={entries.length === 0}
           sx={{ borderRadius: 3 }}
         >
-          Clear Log
+          {t('activity.clearLog')}
         </Button>
       </Box>
 
@@ -114,24 +130,24 @@ export default function ActivityLogPage() {
       >
         <FilterList color="action" />
         <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Action Type</InputLabel>
+          <InputLabel>{t('activity.filterType')}</InputLabel>
           <Select
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
-            label="Action Type"
+            label={t('activity.filterType')}
             sx={{ borderRadius: 3 }}
           >
-            <MenuItem value="ALL">All Actions</MenuItem>
-            {Object.entries(ACTION_CONFIG).map(([key, cfg]) => (
+            <MenuItem value="ALL">{t('activity.allActions')}</MenuItem>
+            {Object.entries(ACTION_ICONS).map(([key]) => (
               <MenuItem key={key} value={key}>
-                {cfg.label}
+                {ACTION_LABELS[key as ActivityAction]}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
         <TextField
           size="small"
-          placeholder="Search by user..."
+          placeholder={t('activity.searchUser')}
           value={searchUser}
           onChange={(e) => setSearchUser(e.target.value)}
           sx={{ minWidth: 200, maxWidth: 350, '& .MuiOutlinedInput-root': { borderRadius: 3 } }}

@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Box, Typography, TextField, IconButton, Paper, Avatar, Chip,
   useTheme, alpha, Slide,
 } from '@mui/material';
 import { Close, Send, SmartToy, Person, Forum } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Message {
   id: string;
@@ -12,62 +13,47 @@ interface Message {
   text: string;
 }
 
-const FAQ: { keywords: string[]; answer: string }[] = [
-  { keywords: ['price', 'pricing', 'cost', 'plan', 'plans', 'how much', 'fee', 'subscription'],
-    answer: 'We offer 3 plans:\n• Standard — 9,000 Ks/mo (1 register, basic analytics)\n• Pro — 29,000 Ks/mo (unlimited registers, KDS, recipe inventory, stock tracking)\n• Enterprise — 79,000 Ks/mo (custom RBAC, multi-store, 24/7 support)\n\nAll plans require contacting our sales team to get started.' },
-  { keywords: ['trial', 'free trial', 'demo', 'try', 'test drive'],
-    answer: 'We don\'t offer a self-service free trial. Contact our sales team and we\'ll set up a personalized demo for your business.' },
-  { keywords: ['variant', 'variants', 'size', 'sugar', 'option', 'options', 'customization'],
-    answer: 'SwiftyPOS supports product variants like Size, Sugar Level, and more. Each option can have its own price modifier — e.g., Large +$0.50. Variants are fully configurable from the admin dashboard.' },
-  { keywords: ['recipe', 'ingredient', 'bom', 'bill of material', 'inventory', 'stock', 'deduct'],
-    answer: 'Define recipes (Bill of Materials) per product. When a sale is made, ingredients are automatically deducted from stock. You get low-stock alerts, cost tracking, and a full stock history.' },
-  { keywords: ['kds', 'kitchen', 'display', 'order', 'ticket'],
-    answer: 'The Kitchen Display System shows incoming orders in real time with color-coded SLA tracking. Kitchen staff can update order status and the POS terminal reflects changes instantly.' },
-  { keywords: ['pos', 'checkout', 'register', 'barcode', 'scan', 'payment'],
-    answer: 'SwiftyPOS features a blazing-fast checkout — barcode scanning, multi-item cart, hold/recall orders, and receipt printing. It runs on any modern browser, iPad, or touchscreen kiosk.' },
-  { keywords: ['rbac', 'role', 'permission', 'access', 'security', 'admin', 'cashier'],
-    answer: 'Built-in role-based access control with 3 default roles: Admin (full access), Cashier (POS + sales), and Kitchen (KDS only). Enterprise plans support fully custom roles.' },
-  { keywords: ['logo', 'brand', 'branding', 'receipt', 'settings', 'customize'],
-    answer: 'Upload your store logo, set custom receipt footer messages, configure tax rates, and more — all from the Global Settings page.' },
-  { keywords: ['report', 'analytics', 'insight', 'data', 'margin', 'sales report'],
-    answer: 'Enterprise-grade analytics covering inventory valuations, gross margins, cashier performance, and daily sales reports — all exportable to Excel.' },
-  { keywords: ['payment', 'kbz', 'wave', 'aya', 'wallet', 'local'],
-    answer: 'We support local Myanmar digital wallets including KBZPay, WavePay, AYA Pay, and Citizen Pay alongside standard cash and card payments.' },
-  { keywords: ['support', 'help', 'contact', 'reach', 'email', 'phone'],
-    answer: 'Reach us at:\n• Email: hello@swiftypos.com\n• Phone: +1 234 567 890\nStandard plans get standard support; Pro and Enterprise include priority and 24/7 dedicated support.' },
-  { keywords: ['hello', 'hi', 'hey', 'good morning', 'good evening'],
-    answer: 'Hello! Welcome to SwiftyPOS. I can help with questions about pricing, features, inventory, variants, KDS, and more. What would you like to know?' },
-  { keywords: ['who', 'what is swifty', 'about', 'about swifty', 'tell me about'],
-    answer: 'SwiftyPOS is a modern cloud-based point-of-sale system built for cafés, restaurants, and retail stores. It includes POS, Kitchen Display, inventory with recipes & variants, RBAC, and analytics — all in one beautiful interface.' },
+const FAQ_KEYWORDS: { key: string; keywords: string[] }[] = [
+  { key: 'chat.faq.pricing', keywords: ['price', 'pricing', 'cost', 'plan', 'plans', 'how much', 'fee', 'subscription'] },
+  { key: 'chat.faq.trial', keywords: ['trial', 'free trial', 'demo', 'try', 'test drive'] },
+  { key: 'chat.faq.variants', keywords: ['variant', 'variants', 'size', 'sugar', 'option', 'options', 'customization'] },
+  { key: 'chat.faq.recipe', keywords: ['recipe', 'ingredient', 'bom', 'bill of material', 'inventory', 'stock', 'deduct'] },
+  { key: 'chat.faq.kds', keywords: ['kds', 'kitchen', 'display', 'order', 'ticket'] },
+  { key: 'chat.faq.pos', keywords: ['pos', 'checkout', 'register', 'barcode', 'scan', 'payment'] },
+  { key: 'chat.faq.rbac', keywords: ['rbac', 'role', 'permission', 'access', 'security', 'admin', 'cashier'] },
+  { key: 'chat.faq.branding', keywords: ['logo', 'brand', 'branding', 'receipt', 'settings', 'customize'] },
+  { key: 'chat.faq.reports', keywords: ['report', 'analytics', 'insight', 'data', 'margin', 'sales report'] },
+  { key: 'chat.faq.payments', keywords: ['payment', 'kbz', 'wave', 'aya', 'wallet', 'local'] },
+  { key: 'chat.faq.support', keywords: ['support', 'help', 'contact', 'reach', 'email', 'phone'] },
+  { key: 'chat.faq.greeting', keywords: ['hello', 'hi', 'hey', 'good morning', 'good evening'] },
+  { key: 'chat.faq.about', keywords: ['who', 'what is swifty', 'about', 'about swifty', 'tell me about'] },
 ];
-
-function matchFAQ(input: string): string | null {
-  const lower = input.toLowerCase();
-  for (const item of FAQ) {
-    if (item.keywords.some(kw => lower.includes(kw))) {
-      return item.answer;
-    }
-  }
-  return null;
-}
-
-const FALLBACK = "I'm not sure about that. Try asking about pricing, features, variants, recipes, KDS, or support. You can also reach our team at hello@swiftypos.com.";
 
 let msgId = 0;
 function nextId() { return String(++msgId); }
 
 export default function ChatBot() {
   const theme = useTheme();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { id: nextId(), role: 'bot', text: 'Hi there! I\'m the SwiftyPOS assistant. Ask me about pricing, features, variants, recipes, or support.' },
-  ]);
+  const greetingMsg = useMemo(() => ({ id: nextId(), role: 'bot' as const, text: t('chat.greeting') }), [t]);
+  const [messages, setMessages] = useState<Message[]>(() => [greetingMsg]);
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const matchFAQ = useCallback((input: string): string | null => {
+    const lower = input.toLowerCase();
+    for (const item of FAQ_KEYWORDS) {
+      if (item.keywords.some(kw => lower.includes(kw))) {
+        return t(item.key);
+      }
+    }
+    return null;
+  }, [t]);
 
   const send = useMemo(() => (text: string) => {
     const trimmed = text.trim();
@@ -77,12 +63,18 @@ export default function ChatBot() {
     setInput('');
 
     setTimeout(() => {
-      const answer = matchFAQ(trimmed) ?? FALLBACK;
+      const answer = matchFAQ(trimmed) ?? t('chat.fallback');
       setMessages(prev => [...prev, { id: nextId(), role: 'bot', text: answer }]);
     }, 400);
-  }, []);
+  }, [matchFAQ, t]);
 
-  const quickActions = ['Pricing', 'Features', 'Inventory', 'KDS', 'Support'];
+  const quickActions = useMemo(() => [
+    { label: t('chat.quick.pricing'), query: 'pricing' },
+    { label: t('chat.quick.features'), query: 'features' },
+    { label: t('chat.quick.inventory'), query: 'inventory' },
+    { label: t('chat.quick.kds'), query: 'kds' },
+    { label: t('chat.quick.support'), query: 'support' },
+  ], [t]);
 
   return (
     <>
@@ -138,8 +130,8 @@ export default function ChatBot() {
                 <SmartToy sx={{ fontSize: 20 }} />
               </Avatar>
               <Box>
-                <Typography fontWeight={800} fontSize="0.95rem">Swifty Assistant</Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>Ask me anything</Typography>
+                <Typography fontWeight={800} fontSize="0.95rem">{t('chat.title')}</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>{t('chat.subtitle')}</Typography>
               </Box>
             </Box>
             <IconButton onClick={() => setOpen(false)} sx={{ color: 'white' }}>
@@ -186,10 +178,10 @@ export default function ChatBot() {
           <Box sx={{ px: 2, pb: 1, display: 'flex', gap: 0.8, flexWrap: 'wrap', bgcolor: '#f8fafc', borderTop: `1px solid ${alpha(theme.palette.divider, 0.06)}` }}>
             {quickActions.map(qa => (
               <Chip
-                key={qa}
-                label={qa}
+                key={qa.query}
+                label={qa.label}
                 size="small"
-                onClick={() => send(qa)}
+                onClick={() => send(qa.query)}
                 sx={{
                   fontWeight: 600, fontSize: '0.72rem',
                   bgcolor: alpha(theme.palette.primary.main, 0.06),
@@ -206,7 +198,7 @@ export default function ChatBot() {
             <TextField
               fullWidth
               size="small"
-              placeholder="Type your question..."
+              placeholder={t('chat.placeholder')}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}

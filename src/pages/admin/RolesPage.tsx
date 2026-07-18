@@ -10,9 +10,11 @@ import { Add, Edit, Delete, Security, VerifiedUser } from '@mui/icons-material';
 import { useRolesStore } from '../../store/useRolesStore';
 import { SYSTEM_MODULES } from '../../types/rbac';
 import type { Role } from '../../types/rbac';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 
 export default function RolesPage() {
+  const { t } = useLanguage();
   const theme = useTheme();
   const { roles, addRole, updateRole, deleteRole } = useRolesStore();
   
@@ -73,10 +75,10 @@ export default function RolesPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Security color="primary" /> Roles & Access Control
+            <Security color="primary" /> {t('roles.title')}
           </Typography>
           <Typography color="text.secondary">
-            Manage Role-Based Access Control (RBAC) and assign module permissions.
+            {t('roles.subtitle')}
           </Typography>
         </Box>
         <Button
@@ -85,7 +87,7 @@ export default function RolesPage() {
           onClick={() => handleOpenModal()}
           sx={{ borderRadius: 3, px: 3, py: 1 }}
         >
-          Create Custom Role
+          {t('roles.createRole')}
         </Button>
       </Box>
 
@@ -96,11 +98,11 @@ export default function RolesPage() {
           <Table sx={{ minWidth: 650 }}>
             <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800 }}>Role Name</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>Description</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>Module Access</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{t('roles.col.name')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{t('roles.col.description')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{t('roles.col.type')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{t('roles.col.modules')}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>{t('roles.col.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -115,7 +117,7 @@ export default function RolesPage() {
                   <TableCell color="text.secondary">{role.description}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={role.isCustom ? 'Custom' : 'System Default'} 
+                      label={role.isCustom ? t('roles.custom') : t('roles.systemDefault')} 
                       size="small"
                       color={role.isCustom ? 'default' : 'primary'}
                       variant={role.isCustom ? 'outlined' : 'filled'}
@@ -125,7 +127,7 @@ export default function RolesPage() {
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                       {role.id === 'admin' ? (
-                        <Chip label="All Modules" size="small" color="success" sx={{ borderRadius: 1.5, fontWeight: 700 }} />
+                        <Chip label={t('roles.allModules')} size="small" color="success" sx={{ borderRadius: 1.5, fontWeight: 700 }} />
                       ) : (
                         role.permissions.map(p => (
                           <Chip key={p} label={p} size="small" sx={{ borderRadius: 1.5, bgcolor: alpha(theme.palette.divider, 0.05) }} />
@@ -157,7 +159,7 @@ export default function RolesPage() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField 
-                label="Role Name" 
+                label={t('roles.dialog.name')} 
                 fullWidth 
                 value={formData.name} 
                 onChange={e => setFormData({...formData, name: e.target.value})} 
@@ -165,7 +167,7 @@ export default function RolesPage() {
                 autoFocus
               />
               <TextField 
-                label="Description" 
+                label={t('roles.dialog.desc')} 
                 fullWidth 
                 value={formData.description} 
                 onChange={e => setFormData({...formData, description: e.target.value})} 
@@ -174,7 +176,7 @@ export default function RolesPage() {
             
             <Box>
               <Typography variant="subtitle2" fontWeight={700} color="primary" sx={{ mb: 2 }}>
-                Module Access Permissions
+                {t('roles.dialog.permissions')}
               </Typography>
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
                 <FormGroup row sx={{ gap: 2 }}>
@@ -198,14 +200,14 @@ export default function RolesPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={handleCloseModal} sx={{ borderRadius: 3 }}>Cancel</Button>
+          <Button onClick={handleCloseModal} sx={{ borderRadius: 3 }}>{t('common.cancel')}</Button>
           <Button 
             variant="contained" 
             onClick={handleSave} 
             disabled={!formData.name.trim()}
             sx={{ borderRadius: 3, px: 4 }}
           >
-            {editingRole ? 'Save Changes' : 'Create Role'}
+            {editingRole ? t('common.save') : t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -30,6 +30,7 @@ import {
   PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 // --- MOCK DASHBOARD DATA UPDATED FOR CAFE ---
 const SALES_DATA = [
@@ -49,24 +50,39 @@ const STOCK_DISTRIBUTION = [
   { name: 'Equipment', value: 200, color: '#6B7280' },
 ];
 
-const MODULE_LAUNCHPAD = [
-  { title: 'POS Terminal', sub: 'Primary Sales Console', icon: <PointOfSale fontSize="large" />, path: '/pos', color: '#E07B39', count: 'Active' },
-  { title: 'Category Registry', sub: 'Organize Stock Groups', icon: <Inventory fontSize="large" />, path: '/admin/inventory/categories', color: '#B05D28', count: '12 Groups' },
-  { title: 'Inventory Hub', sub: 'All SKU Management', icon: <Storefront fontSize="large" />, path: '/admin/inventory', color: '#10b981', count: '142 Items' },
-  { title: 'Settings', sub: 'System Configuration', icon: <Settings fontSize="large" />, path: '/admin/settings', color: '#6B7280', count: 'v1.5' },
+const MODULE_LAUNCHPAD_ITEMS = [
+  { key: 'pos', path: '/pos', color: '#E07B39' },
+  { key: 'categories', path: '/admin/inventory/categories', color: '#B05D28' },
+  { key: 'inventory', path: '/admin/inventory', color: '#10b981' },
+  { key: 'settings', path: '/admin/settings', color: '#6B7280' },
 ];
 
-const KPI_STATS = [
-  { title: 'Daily Revenue', value: '$2,459', sub: '+12.5% Today', isUp: true, color: '#E07B39' },
-  { title: 'Total Orders', value: '42', sub: 'Cafe Standard', isUp: true, color: '#B05D28' },
-  { title: 'Stock Health', value: '94%', sub: 'Healthy Mix', isUp: true, color: '#10b981' },
-  { title: 'Low Inventory', value: '12', sub: 'Restock Soon', isUp: false, color: '#ef4444' },
+const KPI_KEYS = [
+  { key: 'revenue', value: '$2,459', isUp: true, color: '#E07B39' },
+  { key: 'orders', value: '42', isUp: true, color: '#B05D28' },
+  { key: 'stock', value: '94%', isUp: true, color: '#10b981' },
+  { key: 'lowInventory', value: '12', isUp: false, color: '#ef4444' },
 ];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { t } = useLanguage();
+
+  const MODULE_LAUNCHPAD = [
+    { title: t('dashboard.launchpad.pos'), sub: t('dashboard.launchpad.posDesc'), icon: <PointOfSale fontSize="large" />, path: MODULE_LAUNCHPAD_ITEMS[0].path, color: MODULE_LAUNCHPAD_ITEMS[0].color, count: t('dashboard.launchpad.posStatus') },
+    { title: t('dashboard.launchpad.categories'), sub: t('dashboard.launchpad.categoriesDesc'), icon: <Inventory fontSize="large" />, path: MODULE_LAUNCHPAD_ITEMS[1].path, color: MODULE_LAUNCHPAD_ITEMS[1].color, count: t('dashboard.launchpad.catStatus') },
+    { title: t('dashboard.launchpad.inventory'), sub: t('dashboard.launchpad.inventoryDesc'), icon: <Storefront fontSize="large" />, path: MODULE_LAUNCHPAD_ITEMS[2].path, color: MODULE_LAUNCHPAD_ITEMS[2].color, count: t('dashboard.launchpad.invStatus') },
+    { title: t('dashboard.launchpad.settings'), sub: t('dashboard.launchpad.settingsDesc'), icon: <Settings fontSize="large" />, path: MODULE_LAUNCHPAD_ITEMS[3].path, color: MODULE_LAUNCHPAD_ITEMS[3].color, count: t('dashboard.launchpad.settingsStatus') },
+  ];
+
+  const KPI_STATS = [
+    { title: t('dashboard.kpi.revenue'), value: '$2,459', sub: t('dashboard.kpi.revenueChange'), isUp: KPI_KEYS[0].isUp, color: KPI_KEYS[0].color },
+    { title: t('dashboard.kpi.orders'), value: KPI_KEYS[1].value, sub: t('dashboard.kpi.ordersLabel'), isUp: KPI_KEYS[1].isUp, color: KPI_KEYS[1].color },
+    { title: t('dashboard.kpi.stock'), value: KPI_KEYS[2].value, sub: t('dashboard.kpi.stockLabel'), isUp: KPI_KEYS[2].isUp, color: KPI_KEYS[2].color },
+    { title: t('dashboard.kpi.lowInventory'), value: KPI_KEYS[3].value, sub: t('dashboard.kpi.lowLabel'), isUp: KPI_KEYS[3].isUp, color: KPI_KEYS[3].color },
+  ];
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -87,14 +103,14 @@ export default function DashboardPage() {
       }}>
         <Box>
           <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: -1, mb: 0.5, color: 'text.primary', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
-            Analytics Overview
+            {t('dashboard.title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" fontWeight={500} sx={{ letterSpacing: -0.2, fontSize: { xs: '0.9rem', md: '1rem' } }}>
-            Performance insights for <span style={{ color: theme.palette.primary.main, fontWeight: 700 }}>Swifty POS</span>
+            {t('dashboard.subtitle')}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' } }}>
-          <Button variant="outlined" startIcon={<FilterList />} sx={{ borderRadius: 3, fontWeight: 700, px: 2.5, py: 1, flex: { xs: 1, sm: 'none' } }}>Export</Button>
+          <Button variant="outlined" startIcon={<FilterList />} sx={{ borderRadius: 3, fontWeight: 700, px: 2.5, py: 1, flex: { xs: 1, sm: 'none' } }}>{t('common.export')}</Button>
           <Button 
             variant="contained" startIcon={<Add />} 
             onClick={() => navigate('/admin/inventory/product/new')} 
@@ -145,8 +161,8 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, lg: 8 }}>
           <Paper elevation={0} sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 5, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, bgcolor: 'background.paper', minHeight: { xs: 350, md: 450 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 3, md: 5 } }}>
-               <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: -0.5 }}>Revenue Performance</Typography>
-               <Button size="small" color="primary" sx={{ fontWeight: 700, display: { xs: 'none', sm: 'inline-flex' } }} onClick={() => navigate('/admin/reports')}>Detailed Insights <ArrowForward sx={{ ml: 1, fontSize: 16 }} /></Button>
+               <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: -0.5 }}>{t('dashboard.charts.revenue')}</Typography>
+               <Button size="small" color="primary" sx={{ fontWeight: 700, display: { xs: 'none', sm: 'inline-flex' } }} onClick={() => navigate('/admin/reports')}>{t('dashboard.charts.insights')} <ArrowForward sx={{ ml: 1, fontSize: 16 }} /></Button>
             </Box>
             <Box sx={{ width: '100%', height: { xs: 250, md: 350 } }}>
                <ResponsiveContainer>
@@ -171,7 +187,7 @@ export default function DashboardPage() {
         {/* Quick Launchpad - Terracotta Themed */}
         <Grid size={{ xs: 12, lg: 4 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 } }}>
-            <Typography variant="h5" fontWeight={900} sx={{ letterSpacing: -1 }}>Quick Launchpad</Typography>
+            <Typography variant="h5" fontWeight={900} sx={{ letterSpacing: -1 }}>{t('dashboard.launchpad.title')}</Typography>
             {MODULE_LAUNCHPAD.map((module, idx) => (
               <Card 
                 key={idx} elevation={0} 
@@ -201,7 +217,7 @@ export default function DashboardPage() {
       <Grid container spacing={4} sx={{ mb: 6 }}>
          <Grid size={{ xs: 12, md: 5 }}>
             <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 7, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, height: '100%' }}>
-               <Typography variant="h5" fontWeight={900} mb={3} sx={{ letterSpacing: -1 }}>Inventory Balance</Typography>
+               <Typography variant="h5" fontWeight={900} mb={3} sx={{ letterSpacing: -1 }}>{t('dashboard.stockHealth')}</Typography>
                <Box sx={{ height: { xs: 280, md: 320 } }}>
                   <ResponsiveContainer>
                     <PieChart>
@@ -221,8 +237,8 @@ export default function DashboardPage() {
          <Grid size={{ xs: 12, md: 7 }}>
             <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 7, border: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-                  <Typography variant="h5" fontWeight={900} sx={{ letterSpacing: -1 }}>Live Activity Feed</Typography>
-                  <Chip label="Pulse" color="primary" size="small" sx={{ fontWeight: 900, borderRadius: 2, display: { xs: 'none', sm: 'inline-flex' } }} />
+                  <Typography variant="h5" fontWeight={900} sx={{ letterSpacing: -1 }}>{t('dashboard.activityFeed')}</Typography>
+                  <Chip label={t('dashboard.pulse')} color="primary" size="small" sx={{ fontWeight: 900, borderRadius: 2, display: { xs: 'none', sm: 'inline-flex' } }} />
                </Box>
                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {[

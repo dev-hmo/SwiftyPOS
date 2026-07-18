@@ -6,25 +6,27 @@ import {
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { Receipt, Print, Refresh } from '@mui/icons-material';
 import { useSalesStore, type SaleRecord } from '../../store/useSalesStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export default function SalesPage() {
+  const { t } = useLanguage();
   const { sales, refundSale } = useSalesStore();
   const [selectedTx, setSelectedTx] = useState<SaleRecord | null>(null);
 
   const columns: GridColDef[] = [
-    { field: 'receiptNumber', headerName: 'Receipt #', width: 160, renderCell: (p) => <Typography fontWeight={700}>{p.value}</Typography> },
-    { field: 'createdAt', headerName: 'Date / Time', width: 200, valueFormatter: (val) => new Date(val).toLocaleString() },
-    { field: 'cashier', headerName: 'Cashier', width: 180 },
-    { field: 'paymentMethod', headerName: 'Payment', width: 130, 
+    { field: 'receiptNumber', headerName: t('sales.col.receipt'), width: 160, renderCell: (p) => <Typography fontWeight={700}>{p.value}</Typography> },
+    { field: 'createdAt', headerName: t('sales.col.date'), width: 200, valueFormatter: (val) => new Date(val).toLocaleString() },
+    { field: 'cashier', headerName: t('sales.col.cashier'), width: 180 },
+    { field: 'paymentMethod', headerName: t('sales.col.payment'), width: 130, 
       renderCell: (p) => <Chip label={p.value} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2, textTransform: 'capitalize' }} />
     },
-    { field: 'itemCount', headerName: 'Items', width: 90, type: 'number',
+    { field: 'itemCount', headerName: t('sales.col.items'), width: 90, type: 'number',
       valueGetter: (_val, row) => row.items?.length || 0,
     },
-    { field: 'total', headerName: 'Total', width: 120, renderCell: (p) => <Typography fontWeight={800}>${p.value.toFixed(2)}</Typography> },
+    { field: 'total', headerName: t('sales.col.total'), width: 120, renderCell: (p) => <Typography fontWeight={800}>${p.value.toFixed(2)}</Typography> },
     { 
       field: 'status', 
-      headerName: 'Status', 
+      headerName: t('sales.col.status'), 
       width: 140,
       renderCell: (p) => (
         <Chip 
@@ -37,7 +39,7 @@ export default function SalesPage() {
     },
     {
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('sales.col.actions'),
       width: 120,
       renderCell: (p) => (
         <Button 
@@ -47,7 +49,7 @@ export default function SalesPage() {
           onClick={() => setSelectedTx(p.row as SaleRecord)}
           sx={{ borderRadius: 2 }}
         >
-          View
+          {t('sales.view')}
         </Button>
       )
     }
@@ -62,8 +64,8 @@ export default function SalesPage() {
     <Box>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Sales Ledger</Typography>
-          <Typography color="text.secondary">Comprehensive transaction history and receipt repository.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>{t('sales.title')}</Typography>
+          <Typography color="text.secondary">{t('sales.subtitle')}</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Chip label={`${totalOrders} Orders`} sx={{ fontWeight: 700 }} />
@@ -75,8 +77,8 @@ export default function SalesPage() {
 
       {sales.length === 0 ? (
         <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4 }}>
-          <Typography variant="h6" color="text.secondary" fontWeight={700}>No Sales Recorded Yet</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>Complete a transaction on the POS terminal to see it appear here.</Typography>
+          <Typography variant="h6" color="text.secondary" fontWeight={700}>{t('sales.emptyTitle')}</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>{t('sales.emptyDesc')}</Typography>
         </Paper>
       ) : (
         <Paper sx={{ width: '100%', height: 'calc(100vh - 220px)', borderRadius: 4, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
@@ -97,7 +99,7 @@ export default function SalesPage() {
       {/* Interactive Receipt Viewer */}
       <Dialog open={!!selectedTx} onClose={() => setSelectedTx(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6" fontWeight={800}>Receipt Viewer</Typography>
+          <Typography variant="h6" fontWeight={800}>{t('sales.receiptTitle')}</Typography>
           <Chip label={selectedTx?.status} color={selectedTx?.status === 'Completed' ? 'success' : 'error'} size="small" />
         </DialogTitle>
         <DialogContent sx={{ p: 4, bgcolor: '#f8fafc' }}>
@@ -165,7 +167,7 @@ export default function SalesPage() {
           </Paper>
         </DialogContent>
         <DialogActions sx={{ p: 3, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-          <Button onClick={() => setSelectedTx(null)} color="inherit">Close</Button>
+          <Button onClick={() => setSelectedTx(null)} color="inherit">{t('common.close')}</Button>
           {selectedTx?.status === 'Completed' && (
             <Button 
               color="error" variant="outlined" sx={{ borderRadius: 2 }}
@@ -176,7 +178,7 @@ export default function SalesPage() {
                 }
               }}
             >
-              Issue Refund
+              {t('common.refund')}
             </Button>
           )}
           <Button variant="contained" startIcon={<Print />} sx={{ borderRadius: 2, px: 3 }}>Print Duplicate</Button>

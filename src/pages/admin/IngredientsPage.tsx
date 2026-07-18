@@ -9,11 +9,13 @@ import { Add, Download, Edit, Delete, Warning } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { useInventoryStore, type Ingredient } from '../../store/useInventoryStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 const UNIT_OPTIONS = ['g', 'kg', 'ml', 'L', 'pcs'];
 
 export default function IngredientsPage() {
   const theme = useTheme();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { ingredients, addIngredient, deleteIngredient } = useInventoryStore();
 
@@ -38,7 +40,7 @@ export default function IngredientsPage() {
 
   const handleCreate = () => {
     if (!form.name.trim() || !form.sku.trim()) {
-      setSnack({ open: true, msg: 'Name and SKU are required', severity: 'error' });
+      setSnack({ open: true, msg: t('ingredients.nameRequired'), severity: 'error' });
       return;
     }
     const newIng: Ingredient = {
@@ -64,19 +66,19 @@ export default function IngredientsPage() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'sku', headerName: 'SKU', width: 140, flex: 0.5 },
+    { field: 'sku', headerName: t('ingredients.col.sku'), width: 140, flex: 0.5 },
     {
-      field: 'name', headerName: 'Ingredient Name', minWidth: 220, flex: 1.5,
+      field: 'name', headerName: t('ingredients.col.name'), minWidth: 220, flex: 1.5,
       renderCell: (p) => <Typography fontWeight={700}>{p.value}</Typography>,
     },
-    { field: 'unit', headerName: 'Unit', width: 90 },
+    { field: 'unit', headerName: t('ingredients.col.unit'), width: 90 },
     {
-      field: 'cost_per_unit', headerName: 'Cost / Unit', width: 120, type: 'number',
+      field: 'cost_per_unit', headerName: t('ingredients.col.cost'), width: 120, type: 'number',
       valueFormatter: (value) => `$${(value as number).toFixed(2)}`,
     },
     {
       field: 'stock_quantity',
-      headerName: 'Current Stock',
+      headerName: t('ingredients.col.stock'),
       width: 160,
       renderCell: (params) => {
         const isLow = params.row.stock_quantity <= params.row.low_stock_threshold;
@@ -85,18 +87,18 @@ export default function IngredientsPage() {
             <Typography fontWeight={800} color={isLow ? 'error.main' : 'success.main'}>
               {params.value} {params.row.unit}
             </Typography>
-            {isLow && <Chip icon={<Warning sx={{ fontSize: 14 }} />} label="LOW" size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />}
+            {isLow && <Chip icon={<Warning sx={{ fontSize: 14 }} />} label={t('ingredients.low')} size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />}
           </Box>
         );
       }
     },
     {
-      field: 'low_stock_threshold', headerName: 'Alert Level', width: 110, type: 'number',
+      field: 'low_stock_threshold',       headerName: t('ingredients.col.alert'), width: 110, type: 'number',
       valueFormatter: (value, row) => `${value} ${row.unit}`,
     },
     {
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('ingredients.col.actions'),
       width: 120,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1, height: '100%', alignItems: 'center' }}>
@@ -116,9 +118,9 @@ export default function IngredientsPage() {
       {/* Header */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Raw Ingredients</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>{t('ingredients.title')}</Typography>
           <Typography color="text.secondary">
-            Manage raw materials and stock levels
+            {t('ingredients.subtitle')}
             {lowStockItems.length > 0 && (
               <Chip
                 icon={<Warning sx={{ fontSize: 14 }} />}
@@ -131,14 +133,14 @@ export default function IngredientsPage() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button variant="outlined" startIcon={<Download />} onClick={handleExport} sx={{ borderRadius: 3 }}>Export</Button>
+          <Button variant="outlined" startIcon={<Download />} onClick={handleExport} sx={{ borderRadius: 3 }}>{t('common.export')}</Button>
           <Button
             variant="contained"
             startIcon={<Add />}
             onClick={() => { resetForm(); setCreateOpen(true); }}
             sx={{ borderRadius: 3, px: 3 }}
           >
-            Add Ingredient
+            {t('ingredients.addIngredient')}
           </Button>
         </Box>
       </Box>
@@ -167,23 +169,23 @@ export default function IngredientsPage() {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.3rem' }}>New Raw Ingredient</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.3rem' }}>{t('ingredients.createTitle')}</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
             <TextField
-              fullWidth label="Ingredient Name" autoFocus
+              fullWidth label={t('ingredients.nameLabel')} autoFocus
               value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
             <TextField
-              fullWidth label="SKU (Reference Code)"
+              fullWidth label={t('ingredients.skuLabel')}
               value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
             <FormControl fullWidth>
-              <InputLabel sx={{ fontWeight: 700 }}>Unit of Measurement</InputLabel>
+              <InputLabel sx={{ fontWeight: 700 }}>{t('ingredients.unitLabel')}</InputLabel>
               <Select
-                value={form.unit} label="Unit of Measurement"
+                value={form.unit} label={t('ingredients.unitLabel')}
                 onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
                 sx={{ borderRadius: 3 }}
               >
@@ -192,26 +194,26 @@ export default function IngredientsPage() {
             </FormControl>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
               <TextField
-                fullWidth label="Initial Stock" type="number"
+                fullWidth label={t('ingredients.stockLabel')} type="number"
                 value={form.current_stock} onChange={(e) => setForm((p) => ({ ...p, current_stock: parseFloat(e.target.value) || 0 }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
               <TextField
-                fullWidth label="Low Stock Alert Level" type="number"
+                fullWidth label={t('ingredients.alertLabel')} type="number"
                 value={form.min_stock_alert} onChange={(e) => setForm((p) => ({ ...p, min_stock_alert: parseFloat(e.target.value) || 0 }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Box>
             <TextField
-              fullWidth label="Cost per Unit" type="number"
+              fullWidth label={t('ingredients.costLabel')} type="number"
               value={form.cost_per_unit} onChange={(e) => setForm((p) => ({ ...p, cost_per_unit: parseFloat(e.target.value) || 0 }))}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button onClick={() => setCreateOpen(false)} sx={{ fontWeight: 700, borderRadius: 3 }}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreate} sx={{ borderRadius: 3, fontWeight: 700, px: 3 }}>Create</Button>
+          <Button onClick={() => setCreateOpen(false)} sx={{ fontWeight: 700, borderRadius: 3 }}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={handleCreate} sx={{ borderRadius: 3, fontWeight: 700, px: 3 }}>{t('common.create')}</Button>
         </DialogActions>
       </Dialog>
 

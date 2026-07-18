@@ -6,8 +6,10 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, ArrowBack, Delete, Kitchen } from '@mui/icons-material';
 import { useInventoryStore } from '../../store/useInventoryStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export default function IngredientDetailPage() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -73,14 +75,14 @@ export default function IngredientDetailPage() {
           </IconButton>
           <Box>
             <Typography variant="overline" color="text.secondary" fontWeight={700} sx={{ letterSpacing: 1 }}>
-              {isNew ? 'New Raw Ingredient' : 'Ingredient Registry'}
+              {isNew ? t('ingredientDetail.new') : t('ingredientDetail.registry')}
             </Typography>
-            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: -0.5 }}>{formData.name || 'Untitled Ingredient'}</Typography>
+            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: -0.5 }}>{formData.name || t('ingredientDetail.untitled')}</Typography>
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          {!isNew && <Button color="error" variant="outlined" onClick={handleDelete} startIcon={<Delete />} sx={{ borderRadius: 3, fontWeight: 700 }}>Delete</Button>}
-          <Button variant="contained" color="inherit" sx={{ borderRadius: 3, fontWeight: 700 }} onClick={() => navigate('/admin/inventory')}>Discard</Button>
+          {!isNew && <Button color="error" variant="outlined" onClick={handleDelete} startIcon={<Delete />} sx={{ borderRadius: 3, fontWeight: 700 }}>{t('common.delete')}</Button>}
+          <Button variant="contained" color="inherit" sx={{ borderRadius: 3, fontWeight: 700 }} onClick={() => navigate('/admin/inventory')}>{t('ingredientDetail.discard')}</Button>
           <Button 
             variant="contained" 
             color="primary" 
@@ -89,7 +91,7 @@ export default function IngredientDetailPage() {
             onClick={handleSave}
             disabled={!formData.name}
           >
-            Save Ingredient
+            {t('ingredientDetail.save')}
           </Button>
         </Box>
       </Box>
@@ -106,7 +108,7 @@ export default function IngredientDetailPage() {
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 8 }}>
             <TextField 
-              fullWidth label="Ingredient Display Name" 
+              fullWidth label={t('ingredientDetail.nameLabel')} 
               variant="outlined" value={formData.name} 
               onChange={e => handleChange('name', e.target.value)} 
               InputProps={{ sx: { fontSize: '1.5rem', fontWeight: 800, py: 1, borderRadius: 3 } }}
@@ -115,7 +117,7 @@ export default function IngredientDetailPage() {
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField 
-              fullWidth label="Internal SKU (Reference Code)" 
+              fullWidth label={t('ingredientDetail.skuLabel')} 
               variant="outlined" value={formData.sku} 
               onChange={e => handleChange('sku', e.target.value)} 
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, py: 1.5 } }}
@@ -129,8 +131,8 @@ export default function IngredientDetailPage() {
             <Grid container spacing={3}>
               <Grid size={{ xs: 12 }}>
                  <TextField 
-                   fullWidth label="Unit of Measurement" 
-                   helperText="e.g., kg, g, L, ml, pieces"
+                   fullWidth label={t('ingredientDetail.unitLabel')} 
+                   helperText={t('ingredientDetail.unitHelper')}
                    value={formData.unit} 
                    onChange={e => handleChange('unit', e.target.value)} 
                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
@@ -138,7 +140,7 @@ export default function IngredientDetailPage() {
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                  <TextField 
-                   fullWidth label="Current Stock Level" type="number"
+                   fullWidth label={t('ingredientDetail.stockLevel')} type="number"
                    value={formData.stock_quantity} 
                    InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 800 }}>{formData.unit}</InputAdornment> }}
                    onChange={e => handleChange('stock_quantity', parseFloat(e.target.value) || 0)} 
@@ -147,7 +149,7 @@ export default function IngredientDetailPage() {
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                  <TextField 
-                   fullWidth label="Low Stock Warning Threshold" type="number"
+                   fullWidth label={t('ingredientDetail.lowThreshold')} type="number"
                    value={formData.low_stock_threshold} 
                    InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 800 }}>{formData.unit}</InputAdornment> }}
                    onChange={e => handleChange('low_stock_threshold', parseFloat(e.target.value) || 0)} 
@@ -161,7 +163,7 @@ export default function IngredientDetailPage() {
             <Grid container spacing={3}>
               <Grid size={{ xs: 12 }}>
                  <TextField 
-                   fullWidth label={`Cost per ${formData.unit || 'unit'}`} type="number"
+                   fullWidth label={`${t('ingredientDetail.costPer')} ${formData.unit || 'unit'}`} type="number"
                    value={formData.cost_per_unit} 
                    InputProps={{ startAdornment: <InputAdornment position="start" sx={{ fontWeight: 800 }}>$</InputAdornment> }}
                    onChange={e => handleChange('cost_per_unit', parseFloat(e.target.value) || 0)} 

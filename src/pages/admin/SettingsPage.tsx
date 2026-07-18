@@ -8,6 +8,7 @@ import {
   CreditCard, CloudUpload, Delete
 } from '@mui/icons-material';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface StoreSettings {
   storeName: string;
@@ -74,6 +75,7 @@ function saveSettings(settings: StoreSettings) {
 export default function SettingsPage() {
   const theme = useTheme();
   const { user } = useAuthStore();
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<StoreSettings>(() => loadSettings());
   const [saved, setSaved] = useState(false);
 
@@ -123,8 +125,8 @@ export default function SettingsPage() {
   if (user?.role !== 'admin') {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h5" fontWeight={800}>Access Denied</Typography>
-        <Typography color="text.secondary">Only administrators can access settings.</Typography>
+        <Typography variant="h5" fontWeight={800}>{t('settings.accessDenied')}</Typography>
+        <Typography color="text.secondary">{t('settings.accessDeniedDesc')}</Typography>
       </Box>
     );
   }
@@ -133,21 +135,21 @@ export default function SettingsPage() {
     <Box>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Global Settings</Typography>
-          <Typography color="text.secondary">Configure your store, receipt, and system preferences.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>{t('settings.title')}</Typography>
+          <Typography color="text.secondary">{t('settings.subtitle')}</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button variant="outlined" startIcon={<RestartAlt />} onClick={handleReset} sx={{ borderRadius: 3 }}>Reset</Button>
-          <Button variant="contained" startIcon={<Save />} onClick={handleSave} sx={{ borderRadius: 3, px: 3 }}>Save Changes</Button>
+          <Button variant="outlined" startIcon={<RestartAlt />} onClick={handleReset} sx={{ borderRadius: 3 }}>{t('settings.reset')}</Button>
+          <Button variant="contained" startIcon={<Save />} onClick={handleSave} sx={{ borderRadius: 3, px: 3 }}>{t('settings.save')}</Button>
         </Box>
       </Box>
 
-      {saved && <Alert severity="success" sx={{ mb: 3, borderRadius: 3, fontWeight: 700 }}>Settings saved successfully!</Alert>}
+      {saved && <Alert severity="success" sx={{ mb: 3, borderRadius: 3, fontWeight: 700 }}>{t('settings.saved')}</Alert>}
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, height: '100%' }}>
-            <SectionHeader icon={<Store />} title="Store Information" subtitle="Your business profile and branding" />
+            <SectionHeader icon={<Store />} title={t('settings.store.title')} subtitle={t('settings.store.subtitle')} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               {/* Logo upload */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -169,15 +171,15 @@ export default function SettingsPage() {
                   )}
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography variant="body2" fontWeight={700}>Store Logo</Typography>
-                  <Typography variant="caption" color="text.secondary">PNG or JPG, max 2 MB. Recommended 200×200px.</Typography>
+                  <Typography variant="body2" fontWeight={700}>{t('settings.store.logo')}</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('settings.store.logoHelper')}</Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                       variant="outlined" size="small"
                       onClick={() => logoInputRef.current?.click()}
                       sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
                     >
-                      {settings.storeLogo ? 'Change' : 'Upload'}
+                      {settings.storeLogo ? t('settings.store.change') : t('settings.store.upload')}
                     </Button>
                     {settings.storeLogo && (
                       <Button
@@ -186,7 +188,7 @@ export default function SettingsPage() {
                         onClick={handleLogoRemove}
                         sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
                       >
-                        Remove
+                        {t('settings.store.remove')}
                       </Button>
                     )}
                   </Box>
@@ -200,11 +202,11 @@ export default function SettingsPage() {
                 </Box>
               </Box>
               {/* Text fields */}
-              <TextField fullWidth label="Store Name" value={settings.storeName} onChange={e => handleChange('storeName', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
-              <TextField fullWidth label="Address" value={settings.storeAddress} onChange={e => handleChange('storeAddress', e.target.value)} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+              <TextField fullWidth label={t('settings.store.name')} value={settings.storeName} onChange={e => handleChange('storeName', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+              <TextField fullWidth label={t('settings.store.address')} value={settings.storeAddress} onChange={e => handleChange('storeAddress', e.target.value)} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField fullWidth label="Phone" value={settings.storePhone} onChange={e => handleChange('storePhone', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
-                <TextField fullWidth label="Email" value={settings.storeEmail} onChange={e => handleChange('storeEmail', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                <TextField fullWidth label={t('settings.store.phone')} value={settings.storePhone} onChange={e => handleChange('storePhone', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                <TextField fullWidth label={t('settings.store.email')} value={settings.storeEmail} onChange={e => handleChange('storeEmail', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
               </Box>
             </Box>
           </Paper>
@@ -212,14 +214,14 @@ export default function SettingsPage() {
 
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, height: '100%' }}>
-            <SectionHeader icon={<CreditCard />} title="Tax & Currency" subtitle="Configure tax rates and regional settings" />
+            <SectionHeader icon={<CreditCard />} title={t('settings.tax.title')} subtitle={t('settings.tax.subtitle')} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField fullWidth label="Tax Rate (%)" type="number" value={settings.taxRate} onChange={e => handleChange('taxRate', e.target.value)} InputProps={{ endAdornment: <Chip label="%" size="small" /> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
-                <TextField fullWidth label="Currency" value={settings.currency} onChange={e => handleChange('currency', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                <TextField fullWidth label={t('settings.tax.rate')} type="number" value={settings.taxRate} onChange={e => handleChange('taxRate', e.target.value)} InputProps={{ endAdornment: <Chip label="%" size="small" /> }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                <TextField fullWidth label={t('settings.tax.currency')} value={settings.currency} onChange={e => handleChange('currency', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
               </Box>
               <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>Quick Presets</Typography>
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>{t('settings.tax.presets')}</Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {[
                   { label: 'US (8%)', tax: '8', currency: 'USD' },
@@ -243,11 +245,11 @@ export default function SettingsPage() {
 
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}` }}>
-            <SectionHeader icon={<Receipt />} title="Receipt Configuration" subtitle="Customize printable receipt content" />
+            <SectionHeader icon={<Receipt />} title={t('settings.receipt.title')} subtitle={t('settings.receipt.subtitle')} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <TextField fullWidth label="Receipt Footer Message" value={settings.receiptFooter} onChange={e => handleChange('receiptFooter', e.target.value)} multiline rows={2} helperText="This message appears at the bottom of every receipt" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+              <TextField fullWidth label={t('settings.receipt.footer')} value={settings.receiptFooter} onChange={e => handleChange('receiptFooter', e.target.value)} multiline rows={2} helperText={t('settings.receipt.footerHelper')} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button variant="outlined" fullWidth startIcon={<Print />} sx={{ borderRadius: 3 }}>Test Print</Button>
+                <Button variant="outlined" fullWidth startIcon={<Print />} sx={{ borderRadius: 3 }}>{t('settings.receipt.testPrint')}</Button>
               </Box>
             </Box>
           </Paper>
@@ -255,29 +257,29 @@ export default function SettingsPage() {
 
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}` }}>
-            <SectionHeader icon={<Palette />} title="System Preferences" subtitle="Control behavior and UI settings" />
+            <SectionHeader icon={<Palette />} title={t('settings.system.title')} subtitle={t('settings.system.subtitle')} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <FormControlLabel 
                 control={<Switch checked={settings.enableSound} onChange={e => handleChange('enableSound', e.target.checked)} color="primary" />} 
-                label={<Box><Typography fontWeight={700}>Sound Effects</Typography><Typography variant="caption" color="text.secondary">Play audio on scan, payment, and errors</Typography></Box>}
+                label={<Box><Typography fontWeight={700}>{t('settings.system.sound')}</Typography><Typography variant="caption" color="text.secondary">{t('settings.system.soundDesc')}</Typography></Box>}
                 sx={{ ml: 0, py: 1 }}
               />
               <Divider />
               <FormControlLabel 
                 control={<Switch checked={settings.enableAnimations} onChange={e => handleChange('enableAnimations', e.target.checked)} color="primary" />} 
-                label={<Box><Typography fontWeight={700}>Animations</Typography><Typography variant="caption" color="text.secondary">Enable smooth transitions and micro-interactions</Typography></Box>}
+                label={<Box><Typography fontWeight={700}>{t('settings.system.animations')}</Typography><Typography variant="caption" color="text.secondary">{t('settings.system.animationsDesc')}</Typography></Box>}
                 sx={{ ml: 0, py: 1 }}
               />
               <Divider />
               <FormControlLabel 
                 control={<Switch checked={settings.enableAutoLock} onChange={e => handleChange('enableAutoLock', e.target.checked)} color="primary" />} 
-                label={<Box><Typography fontWeight={700}>Auto-Lock Terminal</Typography><Typography variant="caption" color="text.secondary">Lock the POS screen after inactivity</Typography></Box>}
+                label={<Box><Typography fontWeight={700}>{t('settings.system.autoLock')}</Typography><Typography variant="caption" color="text.secondary">{t('settings.system.autoLockDesc')}</Typography></Box>}
                 sx={{ ml: 0, py: 1 }}
               />
               {settings.enableAutoLock && (
                 <TextField 
                   size="small" 
-                  label="Lock after (minutes)" 
+                  label={t('settings.system.lockAfter')} 
                   type="number" 
                   value={settings.autoLockTimeout} 
                   onChange={e => handleChange('autoLockTimeout', e.target.value)} 

@@ -10,9 +10,11 @@ import { Save, ArrowBack, Delete, Add, Inventory, AccountBalanceWallet, Descript
 import { useConfigStore } from '../../store/useConfigStore';
 import { useInventoryStore, type RecipeItem } from '../../store/useInventoryStore';
 import { motion } from 'framer-motion';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 
 export default function ProductDetailPage() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -141,14 +143,14 @@ export default function ProductDetailPage() {
           </IconButton>
           <Box>
             <Typography variant="overline" color="text.secondary" fontWeight={700} sx={{ letterSpacing: 1 }}>
-              {isNew ? 'New Product' : 'Registry Entry'}
+              {isNew ? t('product.new') : t('product.registry')}
             </Typography>
-            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: -0.5 }}>{formData.name || 'Untitled Inventory'}</Typography>
+            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: -0.5 }}>{formData.name || t('product.untitled')}</Typography>
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          {!isNew && <Button color="error" variant="outlined" sx={{ borderRadius: 3, fontWeight: 700 }}>Archive</Button>}
-          <Button variant="contained" color="inherit" sx={{ borderRadius: 3, fontWeight: 700 }} onClick={() => navigate('/admin/inventory')}>Discard</Button>
+          {!isNew && <Button color="error" variant="outlined" sx={{ borderRadius: 3, fontWeight: 700 }}>{t('product.archive')}</Button>}
+          <Button variant="contained" color="inherit" sx={{ borderRadius: 3, fontWeight: 700 }} onClick={() => navigate('/admin/inventory')}>{t('product.discard')}</Button>
           <Button 
             variant="contained" 
             color="primary" 
@@ -156,7 +158,7 @@ export default function ProductDetailPage() {
             sx={{ borderRadius: 3, px: 4, py: 1.5, fontWeight: 800, boxShadow: theme.shadows[4] }} 
             onClick={handleSave}
           >
-            Finalize & Save
+            {t('product.save')}
           </Button>
         </Box>
       </Box>
@@ -176,13 +178,13 @@ export default function ProductDetailPage() {
             <Box sx={{ p: 2.5, borderRadius: '50%', bgcolor: alpha(theme.palette.primary.main, 0.05), mb: 2 }}>
                <Add fontSize="medium" color="primary" />
             </Box>
-            UPLOAD VISUAL
+            {t('product.uploadVisual')}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
            <Paper elevation={0} sx={{ p: 4, borderRadius: 5, ...glassStyle, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <TextField 
-                fullWidth label="Product Display Name" 
+                fullWidth label={t('product.displayName')} 
                 variant="standard" 
                 InputProps={{ sx: { fontSize: '2rem', fontWeight: 800, letterSpacing: -1 } }} 
                 value={formData.name} onChange={e => handleChange('name', e.target.value)} 
@@ -191,11 +193,11 @@ export default function ProductDetailPage() {
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth variant="filled">
-                    <InputLabel sx={{ fontWeight: 700 }}>Product Classification</InputLabel>
-                    <Select value={formData.productType} label="Product Classification" onChange={e => handleChange('productType', e.target.value)} sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.action.hover, 0.05) }}>
-                      <MenuItem value="storable">Storable Product (Inventory Tracked)</MenuItem>
-                      <MenuItem value="consumable">Consumable (Not Tracked)</MenuItem>
-                      <MenuItem value="service">Service (No Physical Stock)</MenuItem>
+                    <InputLabel sx={{ fontWeight: 700 }}>{t('product.classification')}</InputLabel>
+                    <Select value={formData.productType} label={t('product.classification')} onChange={e => handleChange('productType', e.target.value)} sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.action.hover, 0.05) }}>
+                      <MenuItem value="storable">{t('product.storable')}</MenuItem>
+                      <MenuItem value="consumable">{t('product.consumable')}</MenuItem>
+                      <MenuItem value="service">{t('product.service')}</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -203,7 +205,7 @@ export default function ProductDetailPage() {
                   <Paper elevation={0} sx={{ px: 3, py: 1.5, borderRadius: 4, bgcolor: alpha(theme.palette.success.main, 0.05), border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`, width: '100%' }}>
                     <FormControlLabel 
                       control={<Switch checked={formData.availableInPos} onChange={e => handleChange('availableInPos', e.target.checked)} color="success" />} 
-                      label={<Typography fontWeight={800}>Available in POS Terminal</Typography>} 
+                      label={<Typography fontWeight={800}>{t('product.availableInPos')}</Typography>} 
                     />
                   </Paper>
                 </Grid>
@@ -216,11 +218,11 @@ export default function ProductDetailPage() {
       <Paper elevation={0} sx={{ borderRadius: 5, ...glassStyle, overflow: 'hidden', boxShadow: theme.shadows[1] }}>
         <Box sx={{ borderBottom: 1, borderColor: alpha(theme.palette.divider, 0.1), bgcolor: alpha(theme.palette.action.hover, 0.02), px: 2 }}>
           <Tabs value={activeTab} onChange={(_, nv) => setActiveTab(nv)} textColor="primary" indicatorColor="primary">
-            <Tab icon={<Description sx={{ fontSize: 18 }} />} iconPosition="start" label="General Info" sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
-            <Tab icon={<AccountBalanceWallet sx={{ fontSize: 18 }} />} iconPosition="start" label="Accounting" sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
-            <Tab icon={<Inventory sx={{ fontSize: 18 }} />} iconPosition="start" label="Inventory" sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
-            <Tab icon={<Kitchen sx={{ fontSize: 18 }} />} iconPosition="start" label="Recipe (BOM)" sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
-            <Tab icon={<Layers sx={{ fontSize: 18 }} />} iconPosition="start" label="Variants" sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
+            <Tab icon={<Description sx={{ fontSize: 18 }} />} iconPosition="start" label={t('product.tab.general')} sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
+            <Tab icon={<AccountBalanceWallet sx={{ fontSize: 18 }} />} iconPosition="start" label={t('product.tab.accounting')} sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
+            <Tab icon={<Inventory sx={{ fontSize: 18 }} />} iconPosition="start" label={t('product.tab.inventory')} sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
+            <Tab icon={<Kitchen sx={{ fontSize: 18 }} />} iconPosition="start" label={t('product.tab.recipe')} sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
+            <Tab icon={<Layers sx={{ fontSize: 18 }} />} iconPosition="start" label={t('product.tab.variants')} sx={{ fontWeight: 700, textTransform: 'none', minHeight: 64, px: 3 }} />
           </Tabs>
         </Box>
 
@@ -236,18 +238,18 @@ export default function ProductDetailPage() {
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Internal Reference (SKU)" variant="outlined" value={formData.sku} onChange={e => handleChange('sku', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                        <TextField fullWidth label={t('product.general.sku')} variant="outlined" value={formData.sku} onChange={e => handleChange('sku', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Barcode / UPC" value={formData.barcode} onChange={e => handleChange('barcode', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                        <TextField fullWidth label={t('product.general.barcode')} value={formData.barcode} onChange={e => handleChange('barcode', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
                         <FormControl fullWidth>
-                          <InputLabel sx={{ fontWeight: 700 }}>Product Category</InputLabel>
-                          <Select value={formData.categoryId} label="Product Category" onChange={e => handleChange('categoryId', e.target.value)} sx={{ borderRadius: 3 }}>
+                          <InputLabel sx={{ fontWeight: 700 }}>{t('product.general.category')}</InputLabel>
+                          <Select value={formData.categoryId} label={t('product.general.category')} onChange={e => handleChange('categoryId', e.target.value)} sx={{ borderRadius: 3 }}>
                             {categories.map(cat => <MenuItem key={cat.id} value={cat.id} sx={{ py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{cat.name}</MenuItem>)}
                             <Divider sx={{ my: 1 }} />
-                            <MenuItem value="__CREATE__category" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>+ Create New Category</MenuItem>
+                            <MenuItem value="__CREATE__category" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{t('product.general.newCategory')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
@@ -260,10 +262,10 @@ export default function ProductDetailPage() {
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Standard Sales Price" type="number" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ fontWeight: 800 }}>$</InputAdornment> }} value={formData.price} onChange={e => handleChange('price', parseFloat(e.target.value))} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, fontWeight: 900, fontSize: '1.2rem' } }} />
+                        <TextField fullWidth label={t('product.general.salesPrice')} type="number" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ fontWeight: 800 }}>$</InputAdornment> }} value={formData.price} onChange={e => handleChange('price', parseFloat(e.target.value))} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, fontWeight: 900, fontSize: '1.2rem' } }} />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Acquisition Cost" type="number" helperText="Essential for automated margin analysis" InputProps={{ startAdornment: <InputAdornment position="start" sx={{ fontWeight: 800 }}>$</InputAdornment> }} value={formData.cost} onChange={e => handleChange('cost', parseFloat(e.target.value))}  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                        <TextField fullWidth label={t('product.general.cost')} type="number" helperText={t('product.general.costHelper')} InputProps={{ startAdornment: <InputAdornment position="start" sx={{ fontWeight: 800 }}>$</InputAdornment> }} value={formData.cost} onChange={e => handleChange('cost', parseFloat(e.target.value))}  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                       </Grid>
                     </Grid>
                  </Grid>
@@ -278,11 +280,11 @@ export default function ProductDetailPage() {
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
                         <FormControl fullWidth>
-                          <InputLabel sx={{ fontWeight: 700 }}>Applicable Customer Taxes</InputLabel>
-                          <Select value={formData.customerTaxes} label="Applicable Customer Taxes" onChange={e => handleChange('customerTaxes', e.target.value)} sx={{ borderRadius: 3 }}>
+                          <InputLabel sx={{ fontWeight: 700 }}>{t('product.accounting.tax')}</InputLabel>
+                          <Select value={formData.customerTaxes} label={t('product.accounting.tax')} onChange={e => handleChange('customerTaxes', e.target.value)} sx={{ borderRadius: 3 }}>
                             {taxes.map(tax => <MenuItem key={tax.id} value={tax.id} sx={{ py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{tax.name}</MenuItem>)}
                             <Divider sx={{ my: 1 }} />
-                            <MenuItem value="__CREATE__tax" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>+ Define New Tax Rule</MenuItem>
+                            <MenuItem value="__CREATE__tax" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{t('product.accounting.newTax')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
@@ -293,21 +295,21 @@ export default function ProductDetailPage() {
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
                         <FormControl fullWidth>
-                          <InputLabel sx={{ fontWeight: 700 }}>Default Income Account</InputLabel>
-                          <Select value={formData.incomeAccount} label="Default Income Account" onChange={e => handleChange('incomeAccount', e.target.value)} sx={{ borderRadius: 3 }}>
+                          <InputLabel sx={{ fontWeight: 700 }}>{t('product.accounting.income')}</InputLabel>
+                          <Select value={formData.incomeAccount} label={t('product.accounting.income')} onChange={e => handleChange('incomeAccount', e.target.value)} sx={{ borderRadius: 3 }}>
                             {incomeAccounts.map(acc => <MenuItem key={acc.id} value={acc.id} sx={{ py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{acc.code} — {acc.name}</MenuItem>)}
                             <Divider sx={{ my: 1 }} />
-                            <MenuItem value="__CREATE__income" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>+ Register New Account</MenuItem>
+                            <MenuItem value="__CREATE__income" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{t('product.accounting.newIncome')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
                       <Grid size={{ xs: 12 }}>
                         <FormControl fullWidth>
-                          <InputLabel sx={{ fontWeight: 700 }}>Default Expense Account</InputLabel>
-                          <Select value={formData.expenseAccount} label="Default Expense Account" onChange={e => handleChange('expenseAccount', e.target.value)} sx={{ borderRadius: 3 }}>
+                          <InputLabel sx={{ fontWeight: 700 }}>{t('product.accounting.expense')}</InputLabel>
+                          <Select value={formData.expenseAccount} label={t('product.accounting.expense')} onChange={e => handleChange('expenseAccount', e.target.value)} sx={{ borderRadius: 3 }}>
                             {expenseAccounts.map(acc => <MenuItem key={acc.id} value={acc.id} sx={{ py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{acc.code} — {acc.name}</MenuItem>)}
                             <Divider sx={{ my: 1 }} />
-                            <MenuItem value="__CREATE__expense" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>+ Register New Account</MenuItem>
+                            <MenuItem value="__CREATE__expense" sx={{ color: 'primary.main', fontWeight: 800, py: 1.5, px: 2, borderRadius: 2, mx: 1 }}>{t('product.accounting.newExpense')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
@@ -323,13 +325,13 @@ export default function ProductDetailPage() {
                     <Typography variant="h6" fontWeight={900} mb={4}>Logistics Specs</Typography>
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Product Weight" type="number" InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>kg</InputAdornment> }} value={formData.weight} onChange={e => handleChange('weight', parseFloat(e.target.value))}  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                        <TextField fullWidth label={t('product.inventory.weight')} type="number" InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>kg</InputAdornment> }} value={formData.weight} onChange={e => handleChange('weight', parseFloat(e.target.value))}  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Static Volume" type="number" InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>m³</InputAdornment> }} value={formData.volume} onChange={e => handleChange('volume', parseFloat(e.target.value))}  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                        <TextField fullWidth label={t('product.inventory.volume')} type="number" InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 700 }}>m³</InputAdornment> }} value={formData.volume} onChange={e => handleChange('volume', parseFloat(e.target.value))}  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Retail Stock Quantity" type="number" helperText="Ignore if building via Recipe" value={formData.stock_quantity} onChange={e => handleChange('stock_quantity', parseInt(e.target.value, 10) || 0)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+                        <TextField fullWidth label={t('product.inventory.stockQty')} type="number" helperText={t('product.inventory.stockHelper')} value={formData.stock_quantity} onChange={e => handleChange('stock_quantity', parseInt(e.target.value, 10) || 0)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
                       </Grid>
                     </Grid>
                  </Grid>
@@ -338,16 +340,16 @@ export default function ProductDetailPage() {
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
                         <TextField 
-                          fullWidth label="Critical Minimum Threshold" type="number" 
-                          helperText="Automation will trigger reorder alerts below this point" 
+                          fullWidth label={t('product.inventory.min')} type="number" 
+                          helperText={t('product.inventory.minHelper')} 
                           value={formData.minStock} onChange={e => handleChange('minStock', parseInt(e.target.value, 10))} 
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
                         <TextField 
-                          fullWidth label="Target Maximum Capacity" type="number" 
-                          helperText="The replenishment engine will aim for this stock level" 
+                          fullWidth label={t('product.inventory.max')} type="number" 
+                          helperText={t('product.inventory.maxHelper')} 
                           value={formData.maxStock} onChange={e => handleChange('maxStock', parseInt(e.target.value, 10))} 
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                         />
@@ -370,10 +372,10 @@ export default function ProductDetailPage() {
                       <Grid container spacing={3} alignItems="center">
                         <Grid size={{ xs: 12, sm: 6 }}>
                           <FormControl fullWidth variant="outlined">
-                            <InputLabel sx={{ fontWeight: 700 }}>Ingredient Component</InputLabel>
+                            <InputLabel sx={{ fontWeight: 700 }}>{t('product.recipe.ingredient')}</InputLabel>
                             <Select 
                               value={recipeItem.ingredientId} 
-                              label="Ingredient Component"
+                              label={t('product.recipe.ingredient')}
                               onChange={(e) => {
                                 const newRecipe = [...formData.recipe];
                                 newRecipe[index].ingredientId = e.target.value;
@@ -394,9 +396,9 @@ export default function ProductDetailPage() {
                         </Grid>
                         <Grid size={{ xs: 12, sm: 4 }}>
                           <TextField 
-                            fullWidth label="Quantity needed" type="number" 
+                            fullWidth label={t('product.recipe.qty')} type="number" 
                             value={recipeItem.quantity} 
-                            InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 800 }}>{ingredient?.unit || 'units'}</InputAdornment> }}
+                            InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 800 }}>{ingredient?.unit || t('product.recipe.units')}</InputAdornment> }}
                             onChange={(e) => {
                                 const newRecipe = [...formData.recipe];
                                 newRecipe[index].quantity = parseFloat(e.target.value) || 0;
@@ -423,7 +425,7 @@ export default function ProductDetailPage() {
                   }}
                   sx={{ borderRadius: 3, fontWeight: 700, px: 4, py: 1.5, borderStyle: 'dashed', borderWidth: 2 }}
                 >
-                  Add Ingredient to Recipe
+                  {t('product.recipe.add')}
                 </Button>
               </Box>
             )}
@@ -431,10 +433,10 @@ export default function ProductDetailPage() {
             {/* TAB 4: VARIANTS */}
             {activeTab === 4 && (
               <Box>
-                <Typography variant="h6" fontWeight={900} mb={2}>Product Variants</Typography>
-                <Typography color="text.secondary" mb={4} fontWeight={500}>Assign variant groups to this product. Variant groups define selectable options like Size, Sugar Level, etc.</Typography>
+                <Typography variant="h6" fontWeight={900} mb={2}>{t('product.variants.title')}</Typography>
+                <Typography color="text.secondary" mb={4} fontWeight={500}>{t('product.variants.desc')}</Typography>
                 
-                <Typography variant="subtitle2" fontWeight={800} mb={2}>Available Variant Groups</Typography>
+                <Typography variant="subtitle2" fontWeight={800} mb={2}>{t('product.variants.available')}</Typography>
                 <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 4 }}>
                   {(() => {
                     // Collect all unique variant groups from all products
@@ -487,7 +489,7 @@ export default function ProductDetailPage() {
 
                 {formData.variantGroupIds.length > 0 && (
                   <>
-                    <Typography variant="subtitle2" fontWeight={800} mb={2}>Selected Variants Preview</Typography>
+                    <Typography variant="subtitle2" fontWeight={800} mb={2}>{t('product.variants.preview')}</Typography>
                     {formData.variantGroupIds.map(vgId => {
                       const sourceProduct = products.find(p => p.variantGroups.some(vg => vg.id === vgId));
                       const group = sourceProduct?.variantGroups.find(vg => vg.id === vgId);
@@ -519,7 +521,7 @@ export default function ProductDetailPage() {
         PaperProps={{ sx: { borderRadius: 4, p: 1.5, boxShadow: theme.shadows[8] } }}
       >
         <DialogTitle sx={{ fontWeight: 800, fontSize: '1.4rem', letterSpacing: -0.5, pb: 1 }}>
-          Create New {createModal.type?.toUpperCase()}
+          {t('product.dialog.createTitle')} {createModal.type?.toUpperCase()}
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography color="text.secondary" variant="body2" mb={4} fontWeight={500}>
@@ -527,20 +529,20 @@ export default function ProductDetailPage() {
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <TextField 
-              autoFocus fullWidth label="Formal Name / Title" variant="outlined" 
+              autoFocus fullWidth label={t('product.dialog.name')} variant="outlined" 
               value={modalInput.name} onChange={e => setModalInput(prev => ({ ...prev, name: e.target.value }))} 
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
             {createModal.type === 'tax' && (
               <TextField 
-                fullWidth label="Percentage Rate (%)" type="number" variant="outlined"
+                fullWidth label={t('product.dialog.rate')} type="number" variant="outlined"
                 value={modalInput.rate} onChange={e => setModalInput(prev => ({ ...prev, rate: e.target.value }))} 
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             )}
             {(createModal.type === 'income' || createModal.type === 'expense') && (
               <TextField 
-                fullWidth label="Accounting Ledger Code" variant="outlined"
+                fullWidth label={t('product.dialog.code')} variant="outlined"
                 value={modalInput.code} onChange={e => setModalInput(prev => ({ ...prev, code: e.target.value }))} 
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
@@ -548,12 +550,12 @@ export default function ProductDetailPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 1, gap: 1 }}>
-          <Button onClick={() => setCreateModal({ open: false, type: null })} color="inherit" sx={{ fontWeight: 700, borderRadius: 3 }}>Dismiss</Button>
+          <Button onClick={() => setCreateModal({ open: false, type: null })} color="inherit" sx={{ fontWeight: 700, borderRadius: 3 }}>{t('product.dialog.dismiss')}</Button>
           <Button 
             variant="contained" onClick={handleCreateSubmit} disabled={!modalInput.name} 
             sx={{ borderRadius: 3, fontWeight: 800, px: 3, py: 1 }}
           >
-            Create & Integrate
+            {t('product.dialog.createIntegrate')}
           </Button>
         </DialogActions>
       </Dialog>
