@@ -10,7 +10,9 @@ import {
   InputAdornment,
   IconButton,
   useTheme,
-  alpha
+  alpha,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { 
   Visibility, 
@@ -25,43 +27,67 @@ import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const theme = useTheme();
+  const [tab, setTab] = React.useState(0);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [businessName, setBusinessName] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
-  const { setUser, setRole, loginWithGoogle } = useAuthStore();
+  const { login, signup, loginWithGoogle } = useAuthStore();
   const { logActivity } = useActivityStore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    // Simulation logic (Integration with Supabase Auth will go here)
-    if (email === 'admin@example.com' && password === 'admin123') {
-      setUser({ email, id: '1' });
-      setRole('admin');
-      logActivity('LOGIN', 'Admin authenticated', email);
-      navigate('/admin');
-    } else if (email === 'cashier@example.com' && password === 'cashier123') {
-      setUser({ email, id: '2' });
-      setRole('cashier');
-      logActivity('LOGIN', 'Cashier authenticated', email);
-      navigate('/pos');
-    } else if (email === 'superadmin@swiftypos.com' && password === 'super123') {
-      setUser({ email, id: '0', name: 'Super Admin' });
-      setRole('admin');
-      logActivity('LOGIN', 'Super Admin authenticated', email);
-      navigate('/admin/saas');
+    const result = await login(email, password);
+    setIsLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    logActivity('LOGIN', 'User authenticated via email/password', email);
+    if (useAuthStore.getState().role === 'super_admin') {
+      navigate('/super-admin');
     } else {
-      setError('Invalid credentials. Try admin@example.com / admin123');
+      navigate('/admin');
     }
   };
 
-  const handleGoogleLogin = () => {
-    loginWithGoogle();
-    logActivity('LOGIN', 'Google Authentication Success', 'google-oauth');
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!businessName.trim()) {
+      setError('Business name is required.');
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await signup(email, password, businessName);
+    setIsLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    logActivity('LOGIN', 'New workspace created', email);
     navigate('/admin');
+  };
+
+  const handleGoogleLogin = async () => {
+    const result = await loginWithGoogle();
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    logActivity('LOGIN', 'Google Authentication initiated', 'google-oauth');
   };
 
   return (
@@ -71,7 +97,7 @@ export default function LoginPage() {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      bgcolor: '#F9F6F3', // Soft Cream
+      bgcolor: '#F9F6F3',
       position: 'relative',
       overflow: 'hidden',
       '&::before': {
@@ -111,7 +137,7 @@ export default function LoginPage() {
             border: `1px solid ${alpha('#FFFFFF', 0.5)}`,
             boxShadow: '0 40px 80px -20px rgba(0,0,0,0.1)',
           }}>
-            <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box sx={{ 
                 width: 64, 
                 height: 64, 
@@ -131,99 +157,198 @@ export default function LoginPage() {
                 Welcome back
               </Typography>
               <Typography sx={{ color: '#6A6A6A', fontWeight: 500 }}>
-                Sign in to your Swifty POS account
+                {tab === 0 ? 'Sign in to your workspace' : 'Create a new workspace'}
               </Typography>
             </Box>
 
+            <Tabs 
+              value={tab} 
+              onChange={(_, v) => { setTab(v); setError(''); }} 
+              variant="fullWidth" 
+              sx={{ mb: 4, '& .MuiTab-root': { fontWeight: 700, textTransform: 'none' } }}
+            >
+              <Tab label="Sign In" />
+              <Tab label="Sign Up" />
+            </Tabs>
+
             {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>{error}</Alert>}
 
-            <form onSubmit={handleLogin}>
-              <TextField
-                fullWidth
-                label="Email Address"
-                type="email"
-                variant="outlined"
-                margin="normal"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    bgcolor: alpha(theme.palette.primary.main, 0.02)
-                  }
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                variant="outlined"
-                margin="normal"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ 
-                  mb: 4,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    bgcolor: alpha(theme.palette.primary.main, 0.02)
-                  }
-                }}
-              />
-              <Button
-                fullWidth
-                variant="contained"
-                size="large"
-                type="submit"
-                sx={{ 
-                  py: 1.8, 
-                  borderRadius: 3, 
-                  fontWeight: 800,
-                  fontSize: '1rem',
-                  letterSpacing: 0.5,
-                  boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
-                  '&:hover': {
-                    boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.6)}`,
-                  }
-                }}
-              >
-                SIGN IN
-              </Button>
+            {tab === 0 ? (
+              <form onSubmit={handleLogin}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  type="email"
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      bgcolor: alpha(theme.palette.primary.main, 0.02)
+                    }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                  sx={{ 
+                    mb: 4,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      bgcolor: alpha(theme.palette.primary.main, 0.02)
+                    }
+                  }}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  type="submit"
+                  disabled={isLoading}
+                  sx={{ 
+                    py: 1.8, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    letterSpacing: 0.5,
+                    boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    '&:hover': {
+                      boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.6)}`,
+                    }
+                  }}
+                >
+                  {isLoading ? 'Signing In...' : 'SIGN IN'}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleSignup}>
+                <TextField
+                  fullWidth
+                  label="Business Name"
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  helperText="This will be your workspace name"
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      bgcolor: alpha(theme.palette.primary.main, 0.02)
+                    }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  type="email"
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      bgcolor: alpha(theme.palette.primary.main, 0.02)
+                    }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  helperText="Minimum 6 characters"
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                  sx={{ 
+                    mb: 4,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      bgcolor: alpha(theme.palette.primary.main, 0.02)
+                    }
+                  }}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  type="submit"
+                  disabled={isLoading}
+                  sx={{ 
+                    py: 1.8, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    letterSpacing: 0.5,
+                    boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    '&:hover': {
+                      boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.6)}`,
+                    }
+                  }}
+                >
+                  {isLoading ? 'Creating Workspace...' : 'CREATE WORKSPACE'}
+                </Button>
+              </form>
+            )}
 
-              <Box sx={{ my: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>OR</Typography>
-                <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
-              </Box>
+            <Box sx={{ my: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>OR</Typography>
+              <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+            </Box>
 
-              <Button
-                fullWidth
-                variant="outlined"
-                size="large"
-                startIcon={<GoogleIcon />}
-                onClick={handleGoogleLogin}
-                sx={{ 
-                  py: 1.5, 
-                  borderRadius: 3, 
-                  fontWeight: 700,
-                  color: '#334155',
-                  borderColor: '#e2e8f0',
-                  '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' }
-                }}
-              >
-                Continue with Google
-              </Button>
-            </form>
+            <Button
+              fullWidth
+              variant="outlined"
+              size="large"
+              startIcon={<GoogleIcon />}
+              onClick={handleGoogleLogin}
+              sx={{ 
+                py: 1.5, 
+                borderRadius: 3, 
+                fontWeight: 700,
+                color: '#334155',
+                borderColor: '#e2e8f0',
+                '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' }
+              }}
+            >
+              Continue with Google
+            </Button>
 
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#AAAAAA', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>

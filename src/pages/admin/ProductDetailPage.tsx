@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
     ]
   });
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     // Intercept Quick Create Triggers
     if (value === '__CREATE__category') return setCreateModal({ open: true, type: 'category' });
     if (value === '__CREATE__tax') return setCreateModal({ open: true, type: 'tax' });
@@ -73,19 +73,19 @@ export default function ProductDetailPage() {
   const handleCreateSubmit = () => {
     if (createModal.type === 'category') {
       const newCat = addCategory(modalInput.name);
-      setFormData(prev => ({ ...prev, categoryId: newCat.id }));
+      if (newCat) setFormData(prev => ({ ...prev, categoryId: newCat.id }));
     }
     if (createModal.type === 'tax') {
       const newTax = addTax(modalInput.name, parseFloat(modalInput.rate) || 0);
-      setFormData(prev => ({ ...prev, customerTaxes: newTax.id }));
+      if (newTax) setFormData(prev => ({ ...prev, customerTaxes: newTax.id }));
     }
     if (createModal.type === 'income') {
       const newAcc = addIncomeAccount(modalInput.code, modalInput.name);
-      setFormData(prev => ({ ...prev, incomeAccount: newAcc.id }));
+      if (newAcc) setFormData(prev => ({ ...prev, incomeAccount: newAcc.id }));
     }
     if (createModal.type === 'expense') {
       const newAcc = addExpenseAccount(modalInput.code, modalInput.name);
-      setFormData(prev => ({ ...prev, expenseAccount: newAcc.id }));
+      if (newAcc) setFormData(prev => ({ ...prev, expenseAccount: newAcc.id }));
     }
     setCreateModal({ open: false, type: null });
     setModalInput({ name: '', rate: '', code: '' });
@@ -349,7 +349,7 @@ export default function ProductDetailPage() {
 
             {/* TAB 3: RECIPE (BOM) */}
             {activeTab === 3 && (
-              <PremiumFeatureGate feature="recipes" featureName="Recipe Costing Engine (BOM)" requiredTier="Pro">
+              <PremiumFeatureGate feature="recipes" featureName="Recipe Costing Engine (BOM)" requiredTier="pro">
                 <Box>
                   <Typography variant="h6" fontWeight={900} mb={2}>Bill of Materials (BOM)</Typography>
                   <Typography color="text.secondary" mb={5} fontWeight={500}>Specify the raw ingredients and quantities required to produce one unit of this product.</Typography>

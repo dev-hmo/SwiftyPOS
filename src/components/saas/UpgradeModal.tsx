@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog, Box, Typography, Button, IconButton,
   Grid, Paper, TextField, useTheme, alpha, CircularProgress,
-  Stepper, Step, StepLabel, Avatar
+  Stepper, Step, StepLabel, Avatar, Alert
 } from '@mui/material';
 import {
   Close, CloudUpload, CheckCircle, WorkspacePremium,
-  QrCode2, PhoneIphone
+  QrCode2, PhoneIphone, HourglassEmpty
 } from '@mui/icons-material';
 import { useUpgradeStore } from '../../store/useUpgradeStore';
-import { useSubscriptionStore, type PlanTier } from '../../store/useSubscriptionStore';
+import { useSubscriptionStore } from '../../store/useSubscriptionStore';
+import { useTenantStore } from '../../store/useTenantStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { supabase } from '../../lib/supabase';
+import type { PlanTier } from '../../types/tenant';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PAYMENT_METHODS = [
@@ -20,55 +24,83 @@ const PAYMENT_METHODS = [
 ];
 
 const PLANS: { tier: PlanTier; price: number; features: string[]; trial?: boolean }[] = [
-  { tier: 'Standard', price: 9000, features: ['14-Day Free Trial Included', 'Basic POS functionality', 'Standard Reports'], trial: true },
-  { tier: 'Pro', price: 29000, features: ['Kitchen Display System (KDS)', 'Recipe Costing Engine (BOM)', 'Advanced Analytics'], trial: true },
-  { tier: 'Enterprise', price: 79000, features: ['Custom Role Based Access (RBAC)', 'Multi-Store Franchising', 'Priority 24/7 Support'], trial: false },
+  { tier: 'standard', price: 9000, features: ['14-Day Free Trial Included', 'Basic POS functionality', 'Standard Reports'], trial: true },
+  { tier: 'pro', price: 29000, features: ['Kitchen Display System (KDS)', 'Recipe Costing Engine (BOM)', 'Advanced Analytics'], trial: true },
+  { tier: 'enterprise', price: 79000, features: ['Custom Role Based Access (RBAC)', 'Multi-Store Franchising', 'Priority 24/7 Support'], trial: false },
 ];
 
 export default function UpgradeModal() {
+  const { isOpen, targetTier, closeModal, openCount } = useUpgradeStore();
+  const { currentPlan } = useSubscriptionStore();
+
+  return <UpgradeModalInner key={openCount} isOpen={isOpen} targetTier={targetTier} closeModal={closeModal} currentPlan={currentPlan} />;
+}
+
+function UpgradeModalInner({ isOpen, targetTier, closeModal, currentPlan }: {
+  isOpen: boolean;
+  targetTier: string | null;
+  closeModal: () => void;
+  currentPlan: string;
+}) {
   const theme = useTheme();
-  const { isOpen, targetTier, closeModal } = useUpgradeStore();
-  const { currentPlan, setPlan } = useSubscriptionStore();
 
   const [activeStep, setActiveStep] = useState(0);
-  const [selectedPlan, setSelectedPlan] = useState<PlanTier | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier | null>(() => (targetTier as PlanTier) || 'pro');
   const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]);
   const [transactionId, setTransactionId] = useState('');
   const [screenshotSelected, setScreenshotSelected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    if (isOpen) {
-      setActiveStep(0);
-      setSelectedPlan(targetTier || 'Pro');
-      setSelectedMethod(PAYMENT_METHODS[0]);
-      setTransactionId('');
-      setScreenshotSelected(false);
-      setIsSuccess(false);
-      setIsProcessing(false);
-    }
-  }, [isOpen, targetTier]);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleNext = () => setActiveStep((prev) => prev + 1);
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedPlan) return;
     setIsProcessing(true);
-    
-    // Simulate API Verification
-    setTimeout(() => {
-      setPlan(selectedPlan);
-      setIsProcessing(false);
-      setIsSuccess(true);
-      
-      // Auto close after success
-      setTimeout(() => {
-        closeModal();
-      }, 3000);
-    }, 2000);
-  };
+    setSubmitError(null);
+
+    try {
+      const user = useAuthStore.getState().user;
+      const tenant = useTenantStore.getState().activeTenant;
+
+      if (!user?.id || !tenant?.id) {
+        throw new Error('Unable to identify your account. Please refresh and try again.');
+      }
+
+      const planPrice = PLANS.find((p) => p.tier === selectedPlan)?.price ?? 0;
+
+      const { error } = await supabase.from('upgrade_requests').insert({
+        tenant_id: tenant.id,
+        requested_by: user.id,
+        current_plan: currentPlan as PlanTier,
+        requested_plan: selectedPlan,
+        payment_method: selectedMethod.id,
+        transaction_id: transactionId,
+        amount: planPrice,
+      });
+
+      if (error) throw error;
+
+      if (mountedRef.current) {
+        setIsProcessing(false);
+        setIsSuccess(true);
+      }
+    } catch (err) {
+      if (mountedRef.current) {
+        setIsProcessing(false);
+        setSubmitError(err instanceof Error ? err.message : 'Failed to submit upgrade request.');
+      }
+    }
+  }, [selectedPlan, currentPlan, selectedMethod, transactionId]);
 
   const steps = ['Select Plan', 'Payment Provider', 'Verification'];
 
@@ -90,6 +122,9 @@ export default function UpgradeModal() {
         </Box>
 
         <Box sx={{ px: 5, py: 4, flex: 1 }}>
+          {submitError && (
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>{submitError}</Alert>
+          )}
           {!isSuccess ? (
             <>
               <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 5 }}>
@@ -128,7 +163,7 @@ export default function UpgradeModal() {
                                 CURRENT
                               </Box>
                             )}
-                            <Typography variant="h5" fontWeight={900} mb={1}>{plan.tier}</Typography>
+                            <Typography variant="h5" fontWeight={900} mb={1} sx={{ textTransform: 'capitalize' }}>{plan.tier}</Typography>
                             <Typography variant="h4" color="primary" fontWeight={900} mb={3}>
                               {plan.price === 0 ? 'Free' : `${plan.price.toLocaleString()} Ks`}
                               {plan.price !== 0 && <Typography component="span" variant="body2" color="text.secondary"> /mo</Typography>}
@@ -260,10 +295,14 @@ export default function UpgradeModal() {
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
                 <CheckCircle color="success" sx={{ fontSize: 80, mb: 2 }} />
               </motion.div>
-              <Typography variant="h4" fontWeight={900} mb={1}>Upgrade Successful!</Typography>
-              <Typography color="text.secondary" sx={{ maxWidth: 400 }}>
-                Your payment screenshot has been submitted and your account has been instantly upgraded to the <b>{selectedPlan}</b> plan. Welcome to the next level of Swifty POS.
+              <Typography variant="h4" fontWeight={900} mb={1}>Request Submitted!</Typography>
+              <Typography color="text.secondary" sx={{ maxWidth: 450 }}>
+                Your upgrade request to the <b>{selectedPlan}</b> plan has been submitted. A platform administrator will review your payment and activate the upgrade shortly.
               </Typography>
+              <Alert severity="info" icon={<HourglassEmpty />} sx={{ mt: 3, borderRadius: 3, maxWidth: 450 }}>
+                <Typography variant="body2" fontWeight={700}>Pending Approval</Typography>
+                <Typography variant="caption">You will see the plan change reflected here once approved. This usually takes less than 24 hours.</Typography>
+              </Alert>
             </Box>
           )}
         </Box>
@@ -287,11 +326,11 @@ export default function UpgradeModal() {
             ) : (
               <Button
                 variant="contained"
-                onClick={selectedPlan === 'Enterprise' ? closeModal : handleNext}
+                onClick={selectedPlan === 'enterprise' ? closeModal : handleNext}
                 disabled={!selectedPlan || (selectedPlan === currentPlan)}
                 sx={{ borderRadius: 3, fontWeight: 800, px: 4 }}
               >
-                {selectedPlan === 'Enterprise' ? 'Contact Sales' : 'Continue'}
+                {selectedPlan === 'enterprise' ? 'Contact Sales' : 'Continue'}
               </Button>
             )}
           </Box>

@@ -27,7 +27,6 @@ describe('useSettingsStore', () => {
     it('partially updates settings', () => {
       useSettingsStore.getState().updateSettings({ businessName: 'Swifty POS' });
       expect(useSettingsStore.getState().businessName).toBe('Swifty POS');
-      // Other fields should remain unchanged
       expect(useSettingsStore.getState().currencySymbol).toBe('$');
     });
 
@@ -46,6 +45,25 @@ describe('useSettingsStore', () => {
     it('updates business type', () => {
       useSettingsStore.getState().updateSettings({ businessType: 'fb' });
       expect(useSettingsStore.getState().businessType).toBe('fb');
+    });
+
+    it('clamps tax rate to 0-100', () => {
+      useSettingsStore.getState().updateSettings({ taxRate: -10 });
+      expect(useSettingsStore.getState().taxRate).toBe(0);
+
+      useSettingsStore.getState().updateSettings({ taxRate: 150 });
+      expect(useSettingsStore.getState().taxRate).toBe(100);
+    });
+
+    it('rejects invalid business type', () => {
+      // @ts-expect-error testing invalid input
+      useSettingsStore.getState().updateSettings({ businessType: 'invalid' });
+      expect(useSettingsStore.getState().businessType).toBe('retail');
+    });
+
+    it('rejects empty currency symbol', () => {
+      useSettingsStore.getState().updateSettings({ currencySymbol: '' });
+      expect(useSettingsStore.getState().currencySymbol).toBe('$');
     });
   });
 });

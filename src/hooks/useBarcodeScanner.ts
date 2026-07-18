@@ -7,12 +7,17 @@ import { useActivityStore } from '../store/useActivityStore';
  * A hook that listens for rapid barcode scanner input.
  * USB Barcode scanners act like a keyboard that types very fast and hits 'Enter'.
  */
-export function useBarcodeScanner(products: any[]) {
+export function useBarcodeScanner(products: { barcode?: string; name: string; price: number; id: string; sku: string; image_url?: string; category?: string }[]) {
   const bufferRef = useRef('');
-  const lastKeyTimeRef = useRef(Date.now());
+  const lastKeyTimeRef = useRef(0);
+  const productsRef = useRef(products);
   const addItem = useCartStore((state) => state.addItem);
   const { enqueue } = useNotificationStore();
   const { logActivity } = useActivityStore();
+
+  useEffect(() => {
+    productsRef.current = products;
+  });
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -40,7 +45,7 @@ export function useBarcodeScanner(products: any[]) {
         const scannedSku = bufferRef.current.trim();
         
         // Find product
-        const product = products.find(p => p.sku.toLowerCase() === scannedSku.toLowerCase());
+        const product = productsRef.current.find(p => p.sku?.toLowerCase() === scannedSku.toLowerCase());
         
         if (product) {
           addItem({
@@ -64,7 +69,7 @@ export function useBarcodeScanner(products: any[]) {
         bufferRef.current += e.key;
       }
     },
-    [products, addItem, enqueue, logActivity]
+    [addItem, enqueue, logActivity]
   );
 
   useEffect(() => {

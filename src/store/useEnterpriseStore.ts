@@ -1,15 +1,29 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { createTenantStorage } from '../utils/storage';
 
-interface EnterpriseStore {
-  currentStoreId: string | null;
-  setCurrentStore: (id: string | null) => void;
-  stores: any[];
-  setStores: (stores: any[]) => void;
+export interface EnterpriseStoreItem {
+  id: string;
+  name: string;
+  location?: string;
+  is_active: boolean;
 }
 
-export const useEnterpriseStore = create<EnterpriseStore>((set) => ({
-  currentStoreId: null,
-  setCurrentStore: (id) => set({ currentStoreId: id }),
-  stores: [],
-  setStores: (stores) => set({ stores }),
-}));
+interface EnterpriseState {
+  currentStoreId: string | null;
+  setCurrentStore: (id: string | null) => void;
+  stores: EnterpriseStoreItem[];
+  setStores: (stores: EnterpriseStoreItem[]) => void;
+}
+
+export const useEnterpriseStore = create<EnterpriseState>()(
+  persist(
+    (set) => ({
+      currentStoreId: null,
+      setCurrentStore: (id) => set({ currentStoreId: id }),
+      stores: [],
+      setStores: (stores) => set({ stores }),
+    }),
+    { name: 'enterprise', storage: createTenantStorage('enterprise') }
+  )
+);

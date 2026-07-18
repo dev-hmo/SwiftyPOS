@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { type PlanTier } from './useSubscriptionStore';
+import type { PlanTier } from '../types/tenant';
 
 interface UpgradeStore {
   isOpen: boolean;
   targetTier: PlanTier | null;
+  openCount: number;
   openModal: (targetTier?: PlanTier | null) => void;
   closeModal: () => void;
 }
@@ -11,6 +12,7 @@ interface UpgradeStore {
 export const useUpgradeStore = create<UpgradeStore>((set) => ({
   isOpen: false,
   targetTier: null,
-  openModal: (targetTier = null) => set({ isOpen: true, targetTier }),
+  openCount: 0,
+  openModal: (targetTier = null) => set((s) => ({ isOpen: true, targetTier, openCount: s.openCount + 1 })),
   closeModal: () => set({ isOpen: false, targetTier: null }),
 }));

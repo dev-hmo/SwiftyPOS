@@ -158,7 +158,7 @@ export default function InventoryPage() {
             />
           </CustomTabPanel>
           <CustomTabPanel value={tabValue} index={1}>
-            <PremiumFeatureGate feature="recipes" featureName="Raw Ingredients Tracker" requiredTier="Pro">
+            <PremiumFeatureGate feature="recipes" featureName="Raw Ingredients Tracker" requiredTier="pro">
               <DataGrid
                 rows={ingredients}
                 columns={ingredientColumns}

@@ -16,6 +16,8 @@ interface NotificationState {
   clear: () => void;
 }
 
+const MAX_QUEUE = 50;
+
 export const useNotificationStore = create<NotificationState>((set) => ({
   queue: [],
   enqueue: (message, severity = 'info') =>
@@ -28,7 +30,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
           severity,
           timestamp: Date.now(),
         },
-      ],
+      ].slice(-MAX_QUEUE),
     })),
   dequeue: () => set((state) => ({ queue: state.queue.slice(1) })),
   clear: () => set({ queue: [] }),

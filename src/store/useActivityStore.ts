@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { createTenantStorage } from '../utils/storage';
 
 export type ActivityAction =
   | 'LOGIN'
@@ -28,19 +30,24 @@ interface ActivityState {
 
 const MAX_ENTRIES = 100;
 
-export const useActivityStore = create<ActivityState>((set) => ({
-  entries: [],
-  logActivity: (action, details, userId = 'system') =>
-    set((state) => {
-      const newEntry: ActivityEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        action,
-        details,
-        userId,
-        timestamp: Date.now(),
-      };
-      const updated = [newEntry, ...state.entries].slice(0, MAX_ENTRIES);
-      return { entries: updated };
+export const useActivityStore = create<ActivityState>()(
+  persist(
+    (set) => ({
+      entries: [],
+      logActivity: (action, details, userId = 'system') =>
+        set((state) => {
+          const newEntry: ActivityEntry = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            action,
+            details,
+            userId,
+            timestamp: Date.now(),
+          };
+          const updated = [newEntry, ...state.entries].slice(0, MAX_ENTRIES);
+          return { entries: updated };
+        }),
+      clearLog: () => set({ entries: [] }),
     }),
-  clearLog: () => set({ entries: [] }),
-}));
+    { name: 'activity', storage: createTenantStorage('activity') }
+  )
+);

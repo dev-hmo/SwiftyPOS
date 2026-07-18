@@ -231,7 +231,7 @@ export default function LockScreen({ isLocked, onUnlock }: LockScreenProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Fingerprint sx={{ color: alpha('#fff', 0.2), fontSize: 20 }} />
               <Typography sx={{ color: alpha('#fff', 0.2), fontSize: '0.8rem', fontWeight: 600 }}>
-                Default PIN: 1234
+                Enter PIN to unlock
               </Typography>
             </Box>
           </motion.div>

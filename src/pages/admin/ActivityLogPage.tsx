@@ -12,7 +12,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { useActivityStore, type ActivityAction } from '../../store/useActivityStore';
 
-const ACTION_CONFIG: Record<ActivityAction, { color: string; icon: React.ReactNode; label: string }> = {
+const ACTION_CONFIG: Record<ActivityAction, { color: string; icon: React.ReactElement; label: string }> = {
   LOGIN: { color: '#10b981', icon: <Login fontSize="small" />, label: 'Login' },
   LOGOUT: { color: '#6b7280', icon: <Logout fontSize="small" />, label: 'Logout' },
   SALE_COMPLETED: { color: '#E07B39', icon: <ShoppingCart fontSize="small" />, label: 'Sale' },
@@ -49,7 +49,7 @@ export default function ActivityLogPage() {
         const config = ACTION_CONFIG[params.value as ActivityAction];
         return (
           <Chip
-            icon={config?.icon}
+            icon={config ? config.icon : undefined}
             label={config?.label || params.value}
             size="small"
             sx={{

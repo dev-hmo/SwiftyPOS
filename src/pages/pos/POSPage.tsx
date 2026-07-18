@@ -13,7 +13,7 @@ import {
   List, ListItem, Drawer
 } from '@mui/material';
 import { 
-  Delete, ShoppingCart, PointOfSale, Person, ArrowBack, LocalAtm, CreditCard,
+  Delete, ShoppingCart, PointOfSale, Person, LocalAtm, CreditCard,
   Search, Close, Description, InfoOutlined, EmojiFoodBeverage, Cake, Handyman,
   PauseCircle, PlayCircle
 } from '@mui/icons-material';
@@ -29,6 +29,8 @@ import { InvoiceReceipt } from '../../components/pos/InvoiceReceipt';
 import { useReactToPrint } from 'react-to-print';
 import { useSalesStore } from '../../store/useSalesStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { calculateSubtotal } from '../../utils/calculations';
 
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { useKDSStore } from '../../store/useKDSStore';
@@ -60,6 +62,7 @@ export default function POSPage() {
   const { user } = useAuthStore();
   const { products, deductStockFromSale } = useInventoryStore();
   const { addOrder } = useKDSStore();
+  const { taxRate } = useSettingsStore();
   
   // Initialize Barcode Scanner (listening globally for rapid typing)
   useBarcodeScanner(products);
@@ -74,23 +77,24 @@ export default function POSPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [heldDrawerOpen, setHeldDrawerOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<{ number: string; date: string } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const receiptDocRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = useReactToPrint({
-    contentRef: () => receiptDocRef.current,
+    contentRef: receiptDocRef,
     documentTitle: `Receipt-${new Date().getTime()}`,
   });
 
   const debouncedProductSearch = useDebounce(productSearch, 300);
 
   // Calculations
-  const subtotal = useMemo(() => items.reduce((sum, item) => sum + (item.price * item.quantity), 0), [items]);
+  const subtotal = useMemo(() => calculateSubtotal(items), [items]);
   const discountAmount = useMemo(() => items.reduce((sum, item) => sum + ((item.discount || 0) * item.quantity), 0), [items]);
-  const total = subtotal - discountAmount;
-  const tax = total * 0.08;
-  const grandTotal = total + tax;
+  const total = useMemo(() => Math.round((subtotal - discountAmount) * 100) / 100, [subtotal, discountAmount]);
+  const tax = useMemo(() => Math.round(total * (taxRate / 100) * 100) / 100, [total, taxRate]);
+  const grandTotal = useMemo(() => Math.round((total + tax) * 100) / 100, [total, tax]);
 
   const filteredProducts = useMemo(() => {
     let prods = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
@@ -106,7 +110,7 @@ export default function POSPage() {
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleProductClick = (product: any) => {
+  const handleProductClick = (product: typeof products[number]) => {
     addItem(product);
     setSelectedLineId(product.id);
     setNumpadMode('Qty');
@@ -207,11 +211,11 @@ export default function POSPage() {
       </Paper>
 
       {/* Cart Container */}
-      <Paper elevation={0} sx={{ flex: 1, borderRadius: 5, ...glassStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}` }}>
+      <Paper elevation={0} sx={{ flex: 1, borderRadius: 5, ...glassStyle, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+        <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`, flexShrink: 0 }}>
           <Typography variant="subtitle1" fontWeight={800}>Current Order</Typography>
         </Box>
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: 2, minHeight: 0 }}>
           <AnimatePresence initial={false}>
             {items.map((item) => (
               <motion.div
@@ -249,59 +253,68 @@ export default function POSPage() {
         </Box>
 
         {/* Checkout Footer */}
-        <Box sx={{ p: 3, bgcolor: alpha(theme.palette.background.paper, 0.8), borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-          <Box sx={{ mb: 2 }}>
+        <Box sx={{ p: 2, bgcolor: alpha(theme.palette.background.paper, 0.8), borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`, flexShrink: 0 }}>
+          <Box sx={{ mb: 1.5 }}>
              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography variant="caption" fontWeight={700} color="text.secondary">Order Total</Typography>
                 <Typography variant="caption" fontWeight={800}>${subtotal.toFixed(2)}</Typography>
              </Box>
              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <Typography variant="subtitle2" fontWeight={800}>Amount Due</Typography>
-                <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ letterSpacing: -1 }}>${grandTotal.toFixed(2)}</Typography>
+                <Typography variant="h5" fontWeight={800} color="primary.main" sx={{ letterSpacing: -1 }}>${grandTotal.toFixed(2)}</Typography>
              </Box>
           </Box>
 
-          {/* SWIFTY POS TACTILE NUMPAD - Compact */}
-          <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), borderRadius: 4, p: 0.5 }}>
-             <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
-                {['Qty', 'Disc', 'Price'].map(mode => (
+          {/* SWIFTY POS NUMPAD - Compact 4-Column */}
+          <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), borderRadius: 3, p: 0.5 }}>
+             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5 }}>
+                {['7','8','9','⌫','4','5','6','C','1','2','3','+/-'].map(k => (
                   <Button 
-                    key={mode} fullWidth 
-                    onClick={() => setNumpadMode(mode as any)}
+                    key={k} onClick={() => handleNumpadInput(k === '⌫' ? 'Backspace' : k)}
                     sx={{ 
-                      borderRadius: 3, py: 0.8, fontWeight: 700, fontSize: '0.875rem',
-                      bgcolor: numpadMode === mode ? 'primary.main' : 'transparent', 
+                      borderRadius: 2, py: 0.8, minHeight: 36, fontSize: '0.95rem', fontWeight: 700,
+                      bgcolor: 'white', color: 'text.primary', boxShadow: theme.shadows[1],
+                      '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.06) }
+                    }}
+                  >
+                    {k}
+                  </Button>
+                ))}
+                {(['Qty', 'Disc', 'Price'] as const).map(mode => (
+                  <Button 
+                    key={mode}
+                    onClick={() => setNumpadMode(mode)}
+                    sx={{ 
+                      borderRadius: 2, py: 0.8, minHeight: 36, fontWeight: 700, fontSize: '0.75rem',
+                      bgcolor: numpadMode === mode ? 'primary.main' : 'white',
                       color: numpadMode === mode ? 'white' : 'text.secondary',
-                      '&:hover': { bgcolor: numpadMode === mode ? 'primary.dark' : alpha(theme.palette.primary.main, 0.05) }
+                      boxShadow: numpadMode === mode ? theme.shadows[2] : theme.shadows[1],
+                      '&:hover': { bgcolor: numpadMode === mode ? 'primary.dark' : alpha(theme.palette.primary.main, 0.06) }
                     }}
                   >
                     {mode}
                   </Button>
                 ))}
-             </Box>
-             <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5, flex: 3 }}>
-                  {['1','2','3','4','5','6','7','8','9','+/-','0','.'].map(k => (
-                    <Button 
-                      key={k} onClick={() => handleNumpadInput(k)}
-                      sx={{ bgcolor: 'white', borderRadius: 3, py: 1.2, fontSize: '1.2rem', fontWeight: 700, color: 'text.primary', boxShadow: theme.shadows[1] }}
-                    >
-                      {k}
-                    </Button>
-                  ))}
-                </Box>
-                <Box sx={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                   <Button onClick={() => handleNumpadInput('Backspace')} sx={{ flex: 1, bgcolor: '#FFEDD5', borderRadius: 3, color: 'primary.main' }}><ArrowBack /></Button>
-                   <Button 
-                    variant="contained" color="primary"
-                    onClick={() => { setPaymentOpen(true); setMobileCartOpen(false); }}
-                    disabled={items.length === 0}
-                    sx={{ flex: 3, borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 0.5, boxShadow: theme.shadows[4] }}
-                   >
-                     <PointOfSale sx={{ fontSize: 24 }} />
-                     <Typography fontWeight={800} variant="button">PAY</Typography>
-                   </Button>
-                </Box>
+                <Button 
+                  onClick={() => handleNumpadInput('0')}
+                  sx={{ borderRadius: 2, py: 0.8, minHeight: 36, fontSize: '0.95rem', fontWeight: 700, bgcolor: 'white', color: 'text.primary', boxShadow: theme.shadows[1] }}
+                >
+                  0
+                </Button>
+                <Button 
+                  onClick={() => handleNumpadInput('.')}
+                  sx={{ borderRadius: 2, py: 0.8, minHeight: 36, fontSize: '0.95rem', fontWeight: 700, bgcolor: 'white', color: 'text.primary', boxShadow: theme.shadows[1] }}
+                >
+                  .
+                </Button>
+                <Button 
+                  variant="contained" color="primary"
+                  onClick={() => { setPaymentOpen(true); setMobileCartOpen(false); }}
+                  disabled={items.length === 0}
+                  sx={{ borderRadius: 2, py: 0.8, minHeight: 36, fontWeight: 800, fontSize: '0.85rem', boxShadow: theme.shadows[4] }}
+                >
+                  PAY
+                </Button>
              </Box>
           </Box>
         </Box>
@@ -315,8 +328,8 @@ export default function POSPage() {
       p: { xs: 1.5, md: 3 }, 
       display: 'flex', 
       flexDirection: { xs: 'column', lg: 'row' },
-      gap: { xs: 2, lg: 3 }, 
-      height: { xs: 'auto', lg: 'calc(100vh - 120px)' },
+      gap: { xs: 2, lg: 2 }, 
+      height: { xs: 'auto', lg: 'calc(100vh - 100px)' },
       bgcolor: 'background.default',
       position: 'relative',
       overflow: { xs: 'auto', lg: 'hidden' }
@@ -361,9 +374,10 @@ export default function POSPage() {
           {/* Category Pills */}
           <Box sx={{ 
             display: 'flex', 
-            gap: 1, 
+            gap: 0.75, 
             overflowX: 'auto', 
             flex: 1,
+            py: 0.5,
             '&::-webkit-scrollbar': { display: 'none' },
           }}>
             {MOCK_CATEGORIES.map(cat => (
@@ -371,17 +385,19 @@ export default function POSPage() {
                 key={cat.name}
                 onClick={() => setActiveCategory(cat.name)}
                 sx={{ 
-                  borderRadius: 4, px: { xs: 2.5, md: 3 }, py: 1, minWidth: { xs: 90, md: 100 },
-                  bgcolor: activeCategory === cat.name ? 'primary.main' : 'background.paper',
-                  color: activeCategory === cat.name ? 'white' : 'text.primary',
-                  boxShadow: activeCategory === cat.name ? `0 4px 12px -4px ${alpha(theme.palette.primary.main, 0.4)}` : theme.shadows[1],
-                  '&:hover': { bgcolor: activeCategory === cat.name ? 'primary.dark' : alpha(theme.palette.primary.main, 0.05) },
+                  borderRadius: 3, px: { xs: 2, md: 2.5 }, py: 0.75, minWidth: { xs: 80, md: 90 },
+                  bgcolor: activeCategory === cat.name ? 'primary.main' : alpha(theme.palette.background.paper, 0.8),
+                  color: activeCategory === cat.name ? 'white' : 'text.secondary',
+                  border: `1.5px solid ${activeCategory === cat.name ? 'transparent' : alpha(theme.palette.divider, 0.15)}`,
+                  boxShadow: activeCategory === cat.name ? `0 4px 14px -4px ${alpha(theme.palette.primary.main, 0.45)}` : 'none',
+                  '&:hover': { bgcolor: activeCategory === cat.name ? 'primary.dark' : alpha(theme.palette.primary.main, 0.06), borderColor: activeCategory === cat.name ? 'transparent' : 'primary.main' },
                   textTransform: 'none', fontWeight: 700,
-                  display: 'flex', gap: 1,
-                  fontSize: { xs: '0.8rem', md: '0.875rem' }
+                  display: 'flex', gap: 0.75,
+                  fontSize: { xs: '0.78rem', md: '0.85rem' },
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <Typography sx={{ display: 'flex', alignItems: 'center', fontSize: { xs: 16, md: 18 } }}>{cat.icon}</Typography>
+                <Typography sx={{ display: 'flex', alignItems: 'center', fontSize: { xs: 15, md: 17 } }}>{cat.icon}</Typography>
                 {cat.name}
               </Button>
             ))}
@@ -459,17 +475,17 @@ export default function POSPage() {
 
       {/* RIGHT PANE: ORDER MANAGEMENT (Desktop) or Mobile Drawer */}
       {!isMobile ? (
-        <Box sx={{ width: 450, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ width: 420, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, height: '100%' }}>
           {renderCart()}
         </Box>
       ) : (
         <>
           <Fab 
             color="primary" 
-            sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1100, width: 64, height: 64, boxShadow: theme.shadows[10] }}
+            sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1200, width: 60, height: 60, boxShadow: `0 6px 20px -4px ${alpha(theme.palette.primary.main, 0.5)}` }}
             onClick={() => setMobileCartOpen(true)}
           >
-            <Badge badgeContent={items.length} color="error">
+            <Badge badgeContent={items.length} color="error" sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}>
               <ShoppingCart />
             </Badge>
           </Fab>
@@ -480,11 +496,11 @@ export default function POSPage() {
             onClose={() => setMobileCartOpen(false)}
             onOpen={() => setMobileCartOpen(true)}
             PaperProps={{ 
-              sx: { height: '90vh', borderTopLeftRadius: 32, borderTopRightRadius: 32, bgcolor: 'background.default', px: 2, pt: 1 } 
+              sx: { height: '85vh', borderTopLeftRadius: 28, borderTopRightRadius: 28, bgcolor: 'background.default', px: 2, pt: 1, overflow: 'hidden' } 
             }}
           >
-            <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 2, mx: 'auto', mb: 2 }} onClick={() => setMobileCartOpen(false)} />
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', pb: 2 }}>
+            <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 2, mx: 'auto', mb: 1 }} onClick={() => setMobileCartOpen(false)} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 20px)', overflow: 'hidden' }}>
                {renderCart()}
             </Box>
           </SwipeableDrawer>
@@ -545,7 +561,7 @@ export default function POSPage() {
                 <Typography variant="h1" fontWeight={900} color="primary.main" sx={{ mb: 1, letterSpacing: -2 }}>${grandTotal.toFixed(2)}</Typography>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', opacity: 0.6 }}>
                   <InfoOutlined fontSize="small" />
-                  <Typography variant="body2" fontWeight={700}>Including 8% Sales Tax & Service Charge</Typography>
+                  <Typography variant="body2" fontWeight={700}>Including {taxRate}% Sales Tax</Typography>
                 </Box>
               </Box>
 
@@ -578,9 +594,18 @@ export default function POSPage() {
               <Button 
                 variant="contained" fullWidth
                 disabled={!selectedPaymentMethod || items.length === 0}
-                onClick={() => {
-                  // Record the sale
-                  const sale = addSale({
+                    onClick={() => {
+                      // Generate receipt data before sale
+                      const now = new Date();
+                      const yy = now.getFullYear().toString().slice(2);
+                      const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+                      const seq = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+                      const receiptNum = `SML-${yy}${mm}-${seq}`;
+                      const receiptDate = now.toISOString();
+                      setReceiptData({ number: receiptNum, date: receiptDate });
+
+                      // Record the sale
+                      const sale = addSale({
                     items: items.map(i => ({ name: i.name, sku: i.sku, quantity: i.quantity, price: i.price, discount: i.discount })),
                     subtotal,
                     tax,
@@ -588,6 +613,7 @@ export default function POSPage() {
                     total: grandTotal,
                     paymentMethod: selectedPaymentMethod || 'cash',
                     cashier: user?.email || 'Unknown',
+                    cashierId: user?.id || undefined,
                     customer: customer?.name || null,
                   });
                   
@@ -596,7 +622,7 @@ export default function POSPage() {
                   
                   // Push to KDS if any items are prepared (Coffee, Tea, Pastries)
                   const kitchenItems = items
-                    .filter(i => ['Coffee', 'Tea', 'Pastries'].includes(i.category))
+                    .filter(i => i.category != null && ['Coffee', 'Tea', 'Pastries'].includes(i.category))
                     .map(i => ({ name: i.name, quantity: i.quantity, notes: '' })); // Notes could be a future feature
 
                   if (kitchenItems.length > 0) {
@@ -604,7 +630,7 @@ export default function POSPage() {
                       id: `kds-${sale.receiptNumber}`,
                       receiptNumber: sale.receiptNumber,
                       items: kitchenItems,
-                      cashier: user?.email.split('@')[0] || 'Cashier'
+                      cashier: user?.email?.split('@')[0] || 'Cashier'
                     });
                   }
                   
@@ -627,7 +653,7 @@ export default function POSPage() {
               {/* The Actual Printable Receipt Node */}
               <Box sx={{ flex: 1, width: '100%', display: 'flex', justifyContent: 'center' }}>
                 <Box sx={{ boxShadow: theme.shadows[3], border: '1px solid #e0e0e0', p: 1, mb: 3 }}>
-                  <InvoiceReceipt ref={receiptDocRef} />
+                  <InvoiceReceipt ref={receiptDocRef} receiptNumber={receiptData?.number} saleDate={receiptData?.date} />
                 </Box>
               </Box>
 
@@ -672,7 +698,7 @@ export default function POSPage() {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {order.items.length} items • ${order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                    {order.items.length} items • ${calculateSubtotal(order.items).toFixed(2)}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
                     <Button 

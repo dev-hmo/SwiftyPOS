@@ -3,8 +3,15 @@ import { Box, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
+interface ReceiptItem {
+  name: string;
+  quantity: number;
+  price: number;
+  discount?: number;
+}
+
 interface ReceiptTemplateProps {
-  items: any[];
+  items: ReceiptItem[];
   subtotal: number;
   discountAmt: number;
   finalTotal: number;

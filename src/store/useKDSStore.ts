@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createTenantStorage } from '../utils/storage';
+
 
 export interface KDSItem {
   name: string;
@@ -60,7 +62,8 @@ export const useKDSStore = create<KDSState>()(
       clearAll: () => set({ orders: [] })
     }),
     {
-      name: 'swifty-kds-storage',
+      name: 'kds',
+      storage: createTenantStorage('kds'),
     }
   )
 );

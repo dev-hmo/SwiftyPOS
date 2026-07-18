@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useNotificationStore } from '../useNotificationStore';
 
 describe('useNotificationStore', () => {
   beforeEach(() => {
-    // Clear queue before each test
     useNotificationStore.getState().clear();
-    // Mock Date.now() for predictable IDs/timestamps
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-22T00:00:00Z'));
   });
@@ -67,5 +65,16 @@ describe('useNotificationStore', () => {
     const queue = useNotificationStore.getState().queue;
     
     expect(queue).toHaveLength(0);
+  });
+
+  it('should cap queue at 50 items', () => {
+    for (let i = 0; i < 60; i++) {
+      useNotificationStore.getState().enqueue(`Notification ${i}`);
+    }
+    const queue = useNotificationStore.getState().queue;
+    expect(queue).toHaveLength(50);
+    // Oldest dropped, newest kept
+    expect(queue[0].message).toBe('Notification 10');
+    expect(queue[49].message).toBe('Notification 59');
   });
 });

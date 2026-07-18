@@ -17,7 +17,6 @@ const mockProduct2 = {
 
 describe('useCartStore', () => {
   beforeEach(() => {
-    // Reset cart between tests
     useCartStore.setState({ items: [], customer: null });
   });
 
@@ -42,6 +41,16 @@ describe('useCartStore', () => {
       useCartStore.getState().addItem(mockProduct);
       useCartStore.getState().addItem(mockProduct2);
       expect(useCartStore.getState().items).toHaveLength(2);
+    });
+
+    it('rejects products without id or name', () => {
+      useCartStore.getState().addItem({ id: '', name: 'Test', price: 10, quantity: 1, sku: 'X' });
+      expect(useCartStore.getState().items).toHaveLength(0);
+    });
+
+    it('clamps negative prices to 0', () => {
+      useCartStore.getState().addItem({ ...mockProduct, price: -5 });
+      expect(useCartStore.getState().items[0].price).toBe(0);
     });
   });
 
@@ -80,6 +89,12 @@ describe('useCartStore', () => {
       useCartStore.getState().updateQuantity('prod-1', -3);
       expect(useCartStore.getState().items).toHaveLength(0);
     });
+
+    it('floors fractional quantities', () => {
+      useCartStore.getState().addItem(mockProduct);
+      useCartStore.getState().updateQuantity('prod-1', 3.7);
+      expect(useCartStore.getState().items[0].quantity).toBe(3);
+    });
   });
 
   describe('updatePrice', () => {
@@ -94,19 +109,31 @@ describe('useCartStore', () => {
       useCartStore.getState().updatePrice('prod-1', -10);
       expect(useCartStore.getState().items[0].price).toBe(0);
     });
+
+    it('clamps discount when price drops below it', () => {
+      useCartStore.getState().addItem({ ...mockProduct, discount: 10 });
+      useCartStore.getState().updatePrice('prod-1', 5);
+      expect(useCartStore.getState().items[0].discount).toBe(5);
+    });
   });
 
   describe('updateDiscount', () => {
     it('sets a discount on an item', () => {
       useCartStore.getState().addItem(mockProduct);
-      useCartStore.getState().updateDiscount('prod-1', 15);
-      expect(useCartStore.getState().items[0].discount).toBe(15);
+      useCartStore.getState().updateDiscount('prod-1', 5);
+      expect(useCartStore.getState().items[0].discount).toBe(5);
     });
 
     it('clamps to 0 for negative discount', () => {
       useCartStore.getState().addItem(mockProduct);
       useCartStore.getState().updateDiscount('prod-1', -5);
       expect(useCartStore.getState().items[0].discount).toBe(0);
+    });
+
+    it('caps discount at item price', () => {
+      useCartStore.getState().addItem(mockProduct);
+      useCartStore.getState().updateDiscount('prod-1', 100);
+      expect(useCartStore.getState().items[0].discount).toBe(24.50);
     });
   });
 
@@ -116,6 +143,14 @@ describe('useCartStore', () => {
       useCartStore.getState().addItem(mockProduct2);
       useCartStore.getState().clearCart();
       expect(useCartStore.getState().items).toHaveLength(0);
+    });
+  });
+
+  describe('getSubtotal', () => {
+    it('calculates subtotal with discounts', () => {
+      useCartStore.getState().addItem({ ...mockProduct, quantity: 1 });
+      useCartStore.getState().updateDiscount('prod-1', 4.50);
+      expect(useCartStore.getState().getSubtotal()).toBe(20);
     });
   });
 

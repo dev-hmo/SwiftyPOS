@@ -40,7 +40,8 @@ import {
   HelpOutline,
   Logout,
   Menu as MenuIcon,
-  Timeline
+  Timeline,
+  CreditCard
 } from '@mui/icons-material';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import React from 'react';
@@ -48,7 +49,9 @@ import { useEnterpriseStore } from '../store/useEnterpriseStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRolesStore } from '../store/useRolesStore';
+import { useTenantStore } from '../store/useTenantStore';
 import { motion } from 'framer-motion';
+import TenantSwitcher from '../components/common/TenantSwitcher';
 
 const drawerWidth = 260;
 
@@ -58,55 +61,54 @@ const NAVIGATION_CONFIG = [
     title: 'Overview', 
     path: '/admin', 
     icon: <DashboardIcon />, 
-    roles: ['admin', 'manager', 'cashier'] 
+    roles: ['tenant_admin', 'manager', 'cashier'] 
   },
   { 
     title: 'Sales & History', 
     path: '/admin/sales', 
     icon: <Receipt />, 
-    roles: ['admin', 'manager', 'cashier'] 
+    roles: ['tenant_admin', 'manager', 'cashier'] 
   },
   { 
     title: 'Inventory', 
     icon: <InventoryIcon />, 
-    roles: ['admin', 'manager'],
+    roles: ['tenant_admin', 'manager'],
     children: [
-      { title: 'All Products', path: '/admin/inventory', icon: <ViewList />, roles: ['admin', 'manager'] },
-      { title: 'Categories', path: '/admin/inventory/categories', icon: <Category />, roles: ['admin', 'manager'] },
+      { title: 'All Products', path: '/admin/inventory', icon: <ViewList />, roles: ['tenant_admin', 'manager'] },
+      { title: 'Categories', path: '/admin/inventory/categories', icon: <Category />, roles: ['tenant_admin', 'manager'] },
     ]
   },
   { 
     title: 'Reports Hub', 
     path: '/admin/reports', 
     icon: <AnalyticsIcon />, 
-    roles: ['admin', 'manager'] 
+    roles: ['tenant_admin', 'manager'] 
   },
   { 
     title: 'Accounting', 
     path: '/admin/accounting', 
     icon: <AccountingIcon />, 
-    roles: ['admin']
+    roles: ['tenant_admin']
   },
   { 
     title: 'Activity Log', 
     path: '/admin/activity', 
     icon: <Timeline />, 
-    roles: ['admin', 'manager'] 
+    roles: ['tenant_admin', 'manager'] 
   },
   { 
-    title: 'SaaS Registry', 
-    path: '/admin/saas', 
-    icon: <AnalyticsIcon />, 
-    roles: ['admin'],
-    isSuperAdmin: true
+    title: 'Billing & Plan', 
+    path: '/admin/billing', 
+    icon: <CreditCard />, 
+    roles: ['tenant_admin']
   },
   { 
     title: 'Settings', 
     icon: <SettingsIcon />, 
-    roles: ['admin'],
+    roles: ['tenant_admin'],
     children: [
-      { title: 'Global Settings', path: '/admin/settings', icon: <SettingsIcon />, roles: ['admin'] },
-      { title: 'Roles & Access', path: '/admin/settings/roles', icon: <Security />, roles: ['admin'] }
+      { title: 'Global Settings', path: '/admin/settings', icon: <SettingsIcon />, roles: ['tenant_admin'] },
+      { title: 'Roles & Access', path: '/admin/settings/roles', icon: <Security />, roles: ['tenant_admin'] }
     ]
   },
 ];
@@ -117,8 +119,13 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { currentStoreId, setCurrentStore } = useEnterpriseStore();
   const { mode, toggleTheme } = useThemeStore();
-  const { user, logout } = useAuthStore();
+  const { user, role, logout } = useAuthStore();
   const { hasPermission } = useRolesStore();
+  const { tenantStores, activeTenant, loadMemberships } = useTenantStore();
+
+  React.useEffect(() => {
+    loadMemberships();
+  }, [loadMemberships]);
   
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -127,7 +134,7 @@ export default function AdminLayout() {
     'Settings': false,
   });
 
-  const currentUserRole = user?.role || 'admin'; 
+  const currentUserRole = role ?? null;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -137,11 +144,9 @@ export default function AdminLayout() {
     setOpenMenus(prev => ({ ...prev, [title]: !prev[title] }));
   };
 
-  const dummyStores = [
-    { id: '1', name: 'Downtown Branch' },
-    { id: '2', name: 'Airport Kiosk' },
-    { id: '3', name: 'Main Warehouse' },
-  ];
+  const displayStores = tenantStores.length > 0 
+    ? tenantStores.map(s => ({ id: s.id, name: s.name }))
+    : [{ id: 'default', name: activeTenant?.name ?? 'Default Store' }];
 
   const handleLogout = async () => {
     await logout();
@@ -149,6 +154,7 @@ export default function AdminLayout() {
   };
 
   const hasAccess = (moduleName: string) => {
+    if (!currentUserRole) return false;
     return hasPermission(currentUserRole, moduleName);
   };
 
@@ -188,6 +194,7 @@ export default function AdminLayout() {
               </Box>
               Swifty <span style={{ color: theme.palette.text.secondary, fontWeight: 300, display: isMobile ? 'none' : 'inline' }}>POS</span>
             </Typography>
+            <TenantSwitcher />
             <Box sx={{ flex: 1, maxWidth: { xs: 140, sm: 320 } }}>
             <FormControl fullWidth size="small">
               <Select
@@ -202,7 +209,7 @@ export default function AdminLayout() {
                   color: 'primary.main'
                 }}
               >
-                {dummyStores.map(store => (
+                {displayStores.map(store => (
                   <MenuItem key={store.id} value={store.id} sx={{ py: 1.2, px: 2, borderRadius: 2, mx: 1 }}>{store.name}</MenuItem>
                 ))}
               </Select>
@@ -253,7 +260,6 @@ export default function AdminLayout() {
         <Box sx={{ flex: 1, overflowY: 'auto', mt: 4, px: 2 }}>
           <List sx={{ gap: 0.5, display: 'flex', flexDirection: 'column' }}>
             {NAVIGATION_CONFIG.filter(item => {
-              if (item.isSuperAdmin && user?.email !== 'superadmin@swiftypos.com') return false;
               return hasAccess(item.title);
             }).map((item) => (
               <React.Fragment key={item.title}>

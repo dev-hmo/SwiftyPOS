@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useNotificationStore } from './useNotificationStore';
+import { createTenantStorage } from '../utils/storage';
 
 export interface Ingredient {
   id: string;
   sku: string;
   name: string;
-  unit: string; // e.g., 'kg', 'L', 'g', 'oz'
+  unit: string;
   stock_quantity: number;
   cost_per_unit: number;
   low_stock_threshold: number;
@@ -14,7 +15,7 @@ export interface Ingredient {
 
 export interface RecipeItem {
   ingredientId: string;
-  quantity: number; // how much of the ingredient is needed
+  quantity: number;
 }
 
 export interface Product {
@@ -31,19 +32,23 @@ export interface Product {
 export interface InventoryState {
   ingredients: Ingredient[];
   products: Product[];
-  
-  // Ingredient Actions
+
   addIngredient: (ingredient: Ingredient) => void;
   updateIngredient: (id: string, updates: Partial<Ingredient>) => void;
   deleteIngredient: (id: string) => void;
-  
-  // Product Actions
+
   addProduct: (product: Product) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
-  
-  // Pos Action
-  deductStockFromSale: (soldItems: { productId: string, quantity: number }[]) => void;
+
+  /** Returns true if all items can be fulfilled from current stock. */
+  canFulfillSale: (soldItems: { productId: string; quantity: number }[]) => boolean;
+  /** Deducts stock. Throws if insufficient stock. */
+  deductStockFromSale: (soldItems: { productId: string; quantity: number }[]) => void;
+}
+
+function clampNonNegative(n: number): number {
+  return Math.max(0, Math.floor(n));
 }
 
 const DEFAULT_INGREDIENTS: Ingredient[] = [
@@ -55,106 +60,160 @@ const DEFAULT_INGREDIENTS: Ingredient[] = [
 ];
 
 const DEFAULT_PRODUCTS: Product[] = [
-  { 
+  {
     id: '1', sku: 'COF-001', name: 'Terracotta Espresso', price: 18.00, stock_quantity: 0, category: 'Coffee', img: 'https://images.unsplash.com/photo-1510972527921-ce03766a1cf1?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-2', quantity: 18 }] // 18g of beans
+    recipe: [{ ingredientId: 'ing-2', quantity: 18 }]
   },
-  { 
+  {
     id: '2', sku: 'COF-002', name: 'Caramel Macchiato', price: 16.50, stock_quantity: 0, category: 'Coffee', img: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-2', quantity: 18 }, { ingredientId: 'ing-1', quantity: 0.2 }, { ingredientId: 'ing-5', quantity: 30 }] // 18g beans, 200ml milk, 30ml caramel
+    recipe: [{ ingredientId: 'ing-2', quantity: 18 }, { ingredientId: 'ing-1', quantity: 0.2 }, { ingredientId: 'ing-5', quantity: 30 }]
   },
-  { 
+  {
     id: '3', sku: 'TEA-001', name: 'Artisanal Green Tea', price: 12.00, stock_quantity: 0, category: 'Tea', img: 'https://images.unsplash.com/photo-1563911191333-66223404fb85?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-4', quantity: 5 }] // 5g matcha powder
+    recipe: [{ ingredientId: 'ing-4', quantity: 5 }]
   },
-  { 
+  {
     id: '6', sku: 'COF-003', name: 'Cold Brew Oat', price: 14.00, stock_quantity: 0, category: 'Coffee', img: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-2', quantity: 22 }, { ingredientId: 'ing-3', quantity: 0.25 }] // 22g beans, 250ml oat milk
+    recipe: [{ ingredientId: 'ing-2', quantity: 22 }, { ingredientId: 'ing-3', quantity: 0.25 }]
   },
-  { 
+  {
     id: '4', sku: 'PAS-001', name: 'Classic Croissant', price: 4.50, stock_quantity: 45, category: 'Pastries', img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=300&auto=format&fit=crop',
-    recipe: [] // Purchased pre-made
+    recipe: []
   },
-  { 
+  {
     id: '5', sku: 'EQU-001', name: 'Swifty Brew Kit', price: 35.00, stock_quantity: 12, category: 'Equipment', img: 'https://images.unsplash.com/photo-1544787210-2211d247317e?q=80&w=300&auto=format&fit=crop',
-    recipe: [] 
+    recipe: []
   },
 ];
 
 export const useInventoryStore = create<InventoryState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ingredients: DEFAULT_INGREDIENTS,
       products: DEFAULT_PRODUCTS,
 
-      addIngredient: (ingredient) => set((state) => ({ ingredients: [...state.ingredients, ingredient] })),
-      updateIngredient: (id, updates) => set((state) => ({
-        ingredients: state.ingredients.map(i => i.id === id ? { ...i, ...updates } : i)
-      })),
-      deleteIngredient: (id) => set((state) => ({
-        ingredients: state.ingredients.filter(i => i.id !== id)
-      })),
+      addIngredient: (ingredient) =>
+        set((state) => ({
+          ingredients: [...state.ingredients, { ...ingredient, stock_quantity: clampNonNegative(ingredient.stock_quantity) }],
+        })),
 
-      addProduct: (product) => set((state) => ({ products: [...state.products, product] })),
-      updateProduct: (id, updates) => set((state) => ({
-        products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
-      })),
-      deleteProduct: (id) => set((state) => ({
-        products: state.products.filter(p => p.id !== id)
-      })),
+      updateIngredient: (id, updates) =>
+        set((state) => ({
+          ingredients: state.ingredients.map((i) => {
+            if (i.id !== id) return i;
+            const safeUpdates = { ...updates };
+            delete safeUpdates.id;
+            const next = { ...i, ...safeUpdates };
+            if (typeof next.stock_quantity === 'number') {
+              next.stock_quantity = clampNonNegative(next.stock_quantity);
+            }
+            if (typeof next.cost_per_unit === 'number') {
+              next.cost_per_unit = Math.max(0, next.cost_per_unit);
+            }
+            if (typeof next.low_stock_threshold === 'number') {
+              next.low_stock_threshold = clampNonNegative(next.low_stock_threshold);
+            }
+            return next;
+          }),
+        })),
+
+      deleteIngredient: (id) =>
+        set((state) => ({
+          ingredients: state.ingredients.filter((i) => i.id !== id),
+        })),
+
+      addProduct: (product) =>
+        set((state) => ({
+          products: [...state.products, { ...product, stock_quantity: clampNonNegative(product.stock_quantity) }],
+        })),
+
+      updateProduct: (id, updates) =>
+        set((state) => ({
+          products: state.products.map((p) => {
+            if (p.id !== id) return p;
+            const safeUpdates = { ...updates };
+            delete safeUpdates.id;
+            const next = { ...p, ...safeUpdates };
+            if (typeof next.stock_quantity === 'number') {
+              next.stock_quantity = clampNonNegative(next.stock_quantity);
+            }
+            if (typeof next.price === 'number') {
+              next.price = Math.max(0, next.price);
+            }
+            return next;
+          }),
+        })),
+
+      deleteProduct: (id) =>
+        set((state) => ({
+          products: state.products.filter((p) => p.id !== id),
+        })),
+
+      canFulfillSale: (soldItems) => {
+        const { products, ingredients } = get();
+        for (const soldItem of soldItems) {
+          const product = products.find((p) => p.id === soldItem.productId);
+          if (!product) return false;
+
+          if (product.recipe.length > 0) {
+            for (const recipeItem of product.recipe) {
+              const ing = ingredients.find((i) => i.id === recipeItem.ingredientId);
+              const needed = recipeItem.quantity * soldItem.quantity;
+              if (!ing || ing.stock_quantity < needed) return false;
+            }
+          } else {
+            if (product.stock_quantity < soldItem.quantity) return false;
+          }
+        }
+        return true;
+      },
 
       deductStockFromSale: (soldItems) => {
+        // Pre-validate: reject if any item would go negative
+        if (!get().canFulfillSale(soldItems)) {
+          throw new Error('Insufficient stock to fulfill this sale');
+        }
+
         set((state) => {
-          const updatedIngredients = [...state.ingredients];
-          const updatedProducts = [...state.products];
-          
-          soldItems.forEach(soldItem => {
-            const productIndex = updatedProducts.findIndex(p => p.id === soldItem.productId);
-            if (productIndex === -1) return;
-            const product = updatedProducts[productIndex];
+          const updatedIngredients = state.ingredients.map((i) => ({ ...i }));
+          const updatedProducts = state.products.map((p) => ({ ...p }));
 
-            if (product.recipe && product.recipe.length > 0) {
-              // Deduct ingredients for recipe-based items
-              product.recipe.forEach(recipeItem => {
-                const ingIndex = updatedIngredients.findIndex(i => i.id === recipeItem.ingredientId);
-                if (ingIndex !== -1) {
-                  const deductionTotal = recipeItem.quantity * soldItem.quantity;
-                  updatedIngredients[ingIndex].stock_quantity -= deductionTotal;
-                  if (updatedIngredients[ingIndex].stock_quantity < 0) {
-                    updatedIngredients[ingIndex].stock_quantity = 0;
-                  }
-                }
-              });
-            } else {
-              // Deduct product stock directly for non-recipe items (retail/pastries)
-              updatedProducts[productIndex].stock_quantity -= soldItem.quantity;
-              if (updatedProducts[productIndex].stock_quantity < 0) {
-                updatedProducts[productIndex].stock_quantity = 0;
+          for (const soldItem of soldItems) {
+            const productIdx = updatedProducts.findIndex((p) => p.id === soldItem.productId);
+            if (productIdx === -1) continue;
+            const product = updatedProducts[productIdx];
+
+            if (product.recipe.length > 0) {
+              for (const recipeItem of product.recipe) {
+                const ingIdx = updatedIngredients.findIndex((i) => i.id === recipeItem.ingredientId);
+                if (ingIdx === -1) continue;
+                updatedIngredients[ingIdx].stock_quantity -= recipeItem.quantity * soldItem.quantity;
               }
+            } else {
+              updatedProducts[productIdx].stock_quantity -= soldItem.quantity;
             }
-          });
+          }
 
-          // Check for low stock and notify
-          updatedIngredients.forEach(ing => {
+          // Low-stock alerts
+          for (const ing of updatedIngredients) {
             if (ing.stock_quantity <= ing.low_stock_threshold) {
-              const originalIng = state.ingredients.find(i => i.id === ing.id);
-              // Only notify if it JUST fell below or is still below (avoid spamming if possible, 
-              // but here we just notify on every deduction that results in low stock for simplicity)
-              if (originalIng && (originalIng.stock_quantity > ing.low_stock_threshold || originalIng.stock_quantity !== ing.stock_quantity)) {
+              const original = state.ingredients.find((i) => i.id === ing.id);
+              if (original && original.stock_quantity > ing.low_stock_threshold) {
                 useNotificationStore.getState().enqueue(
                   `Low Stock Alert: ${ing.name} is down to ${ing.stock_quantity} ${ing.unit}`,
                   'warning'
                 );
               }
             }
-          });
+          }
 
           return { ingredients: updatedIngredients, products: updatedProducts };
         });
-      }
+      },
     }),
     {
-      name: 'inventory-storage',
+      name: 'inventory',
+      storage: createTenantStorage('inventory'),
     }
   )
 );

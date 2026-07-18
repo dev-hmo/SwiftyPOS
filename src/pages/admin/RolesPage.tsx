@@ -7,7 +7,9 @@ import {
   useTheme, alpha
 } from '@mui/material';
 import { Add, Edit, Delete, Security, VerifiedUser } from '@mui/icons-material';
-import { useRolesStore, SYSTEM_MODULES, type Role } from '../../store/useRolesStore';
+import { useRolesStore } from '../../store/useRolesStore';
+import { SYSTEM_MODULES } from '../../types/rbac';
+import type { Role } from '../../types/rbac';
 import PremiumFeatureGate from '../../components/PremiumFeatureGate';
 
 export default function RolesPage() {
@@ -77,7 +79,7 @@ export default function RolesPage() {
             Manage Role-Based Access Control (RBAC) and assign module permissions.
           </Typography>
         </Box>
-        <PremiumFeatureGate feature="custom_rbac" featureName="Custom Role Engine" requiredTier="Enterprise">
+        <PremiumFeatureGate feature="custom_rbac" featureName="Custom Role Engine" requiredTier="enterprise">
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -124,7 +126,7 @@ export default function RolesPage() {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      {role.id === 'admin' ? (
+                      {role.id === 'tenant_admin' ? (
                         <Chip label="All Modules" size="small" color="success" sx={{ borderRadius: 1.5, fontWeight: 700 }} />
                       ) : (
                         role.permissions.map(p => (
@@ -134,7 +136,7 @@ export default function RolesPage() {
                     </Box>
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton color="primary" onClick={() => handleOpenModal(role)} disabled={role.id === 'admin'}>
+                    <IconButton color="primary" onClick={() => handleOpenModal(role)} disabled={role.id === 'tenant_admin'}>
                       <Edit fontSize="small" />
                     </IconButton>
                     <IconButton color="error" onClick={() => deleteRole(role.id)} disabled={!role.isCustom}>

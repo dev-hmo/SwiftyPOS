@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useHeldOrdersStore } from '../useHeldOrdersStore';
 import type { CartItem, Customer } from '../useCartStore';
 
 const mockItems: CartItem[] = [
-  { id: '1', sku: 'SKU1', name: 'Item 1', price: 10, quantity: 2, category: 'A', img: '' },
+  { id: '1', sku: 'SKU1', name: 'Item 1', price: 10, quantity: 2 },
 ];
 const mockCustomer: Customer = { id: 'c1', name: 'John Doe', email: 'john@example.com', points: 0 };
 
@@ -35,11 +35,18 @@ describe('useHeldOrdersStore', () => {
     expect(orders[0].timestamp).toBe(Date.now());
   });
 
+  it('should return null when holding an empty cart', () => {
+    const id = useHeldOrdersStore.getState().holdOrder([], null);
+    expect(id).toBeNull();
+    expect(useHeldOrdersStore.getState().orders).toHaveLength(0);
+  });
+
   it('should recall an order by ID and remove it from the held list', () => {
     const id = useHeldOrdersStore.getState().holdOrder(mockItems, mockCustomer);
+    expect(id).not.toBeNull();
     expect(useHeldOrdersStore.getState().orders).toHaveLength(1);
 
-    const recalledOrder = useHeldOrdersStore.getState().recallOrder(id);
+    const recalledOrder = useHeldOrdersStore.getState().recallOrder(id!);
     expect(recalledOrder).not.toBeNull();
     expect(recalledOrder?.id).toBe(id);
     expect(useHeldOrdersStore.getState().orders).toHaveLength(0);
@@ -54,7 +61,7 @@ describe('useHeldOrdersStore', () => {
     const id = useHeldOrdersStore.getState().holdOrder(mockItems, null);
     expect(useHeldOrdersStore.getState().orders).toHaveLength(1);
 
-    useHeldOrdersStore.getState().removeHeldOrder(id);
+    useHeldOrdersStore.getState().removeHeldOrder(id!);
     expect(useHeldOrdersStore.getState().orders).toHaveLength(0);
   });
 
@@ -65,9 +72,7 @@ describe('useHeldOrdersStore', () => {
     
     const orders = useHeldOrdersStore.getState().orders;
     expect(orders).toHaveLength(10);
-    // The most recently added (Note 14) should be first
     expect(orders[0].note).toBe('Note 14');
-    // The oldest kept (Note 5) should be last
     expect(orders[9].note).toBe('Note 5');
   });
 });

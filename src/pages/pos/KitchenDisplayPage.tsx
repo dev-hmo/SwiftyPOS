@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from 'react';
-import { 
-  Box, Typography, Grid, Paper, Chip, Button, 
-  useTheme, alpha, Avatar, LinearProgress 
+import {
+  Box, Typography, Grid, Paper, Chip, Button,
+  alpha, Avatar, LinearProgress
 } from '@mui/material';
 import { 
   Restaurant, Timer, CheckCircle, LocalCafe, 
@@ -180,7 +180,7 @@ export default function KitchenDisplayPage() {
       </Box>
 
       {/* Order Columns */}
-      <PremiumFeatureGate feature="kds" featureName="Kitchen Display System" requiredTier="Pro">
+      <PremiumFeatureGate feature="kds" featureName="Kitchen Display System" requiredTier="pro">
         <Grid container spacing={3}>
           {/* NEW ORDERS */}
           <Grid size={{ xs: 12, md: 4 }}>

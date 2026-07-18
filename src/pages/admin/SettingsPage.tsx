@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box, Typography, Paper, TextField, Button, Grid, Switch, FormControlLabel,
   Divider, Avatar, alpha, useTheme, Alert, Chip
@@ -7,8 +7,10 @@ import {
   Store, Receipt, Palette, Save, RestartAlt, Print, 
   CreditCard, WorkspacePremium
 } from '@mui/icons-material';
-import { useSubscriptionStore, type PlanTier } from '../../store/useSubscriptionStore';
+import { useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { useUpgradeStore } from '../../store/useUpgradeStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import type { PlanTier } from '../../types/tenant';
 
 interface StoreSettings {
   storeName: string;
@@ -38,31 +40,9 @@ const DEFAULT_SETTINGS: StoreSettings = {
   autoLockTimeout: '5',
 };
 
-export default function SettingsPage() {
+function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   const theme = useTheme();
-  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
-  const [saved, setSaved] = useState(false);
-  
-  const { currentPlan, setPlan } = useSubscriptionStore();
-  const openUpgradeModal = useUpgradeStore(state => state.openModal);
-
-  const handleChange = (field: keyof StoreSettings, value: string | boolean) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
-    setSaved(false);
-  };
-
-  const handleSave = () => {
-    localStorage.setItem('pos-settings', JSON.stringify(settings));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const handleReset = () => {
-    setSettings(DEFAULT_SETTINGS);
-    setSaved(false);
-  };
-
-  const SectionHeader = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) => (
+  return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
       <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', width: 44, height: 44, borderRadius: 3 }}>
         {icon}
@@ -73,6 +53,63 @@ export default function SettingsPage() {
       </Box>
     </Box>
   );
+}
+
+function getSettingsKey(tenantId: string | null | undefined): string {
+  return tenantId ? `pos-settings-${tenantId}` : 'pos-settings';
+}
+
+/** Tenant-scoped localStorage wrapper to prevent cross-tenant data leaks. */
+function tenantScopedStorage(tenantId: string | null | undefined) {
+  const key = getSettingsKey(tenantId);
+  return {
+    load: (): StoreSettings => {
+      try {
+        const saved = localStorage.getItem(key);
+        return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+      } catch {
+        return DEFAULT_SETTINGS;
+      }
+    },
+    save: (settings: StoreSettings) => {
+      localStorage.setItem(key, JSON.stringify(settings));
+    },
+  };
+}
+
+export default function SettingsPage() {
+  const theme = useTheme();
+  const { user } = useAuthStore();
+  const storage = tenantScopedStorage(user?.tenantId);
+
+  const [settings, setSettings] = useState<StoreSettings>(() => storage.load());
+  const [saved, setSaved] = useState(false);
+  
+  const { currentPlan } = useSubscriptionStore();
+  const openUpgradeModal = useUpgradeStore(state => state.openModal);
+
+  const handleChange = (field: keyof StoreSettings, value: string | boolean) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+    setSaved(false);
+  };
+
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSave = useCallback(() => {
+    storage.save(settings);
+    setSaved(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setSaved(false), 3000);
+  }, [settings, storage]);
+
+  const handleReset = () => {
+    setSettings(DEFAULT_SETTINGS);
+    setSaved(false);
+  };
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   return (
     <Box>
@@ -162,22 +199,15 @@ export default function SettingsPage() {
               <Divider sx={{ my: 1 }} />
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Manage Plan Enrollment</Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {(['Starter', 'Pro', 'Enterprise'] as PlanTier[]).map(plan => (
+                {(['free', 'standard', 'pro', 'enterprise'] as PlanTier[]).map(plan => (
                   <Chip
                     key={plan}
                     label={plan}
                     clickable
                     onClick={() => {
-                      // If it's the current plan, do nothing
                       if (currentPlan === plan) return;
-                      // Trigger upgrade modal
                       openUpgradeModal(plan);
                     }}
-                    onDelete={() => {
-                      // Secret Admin Shortcut to force switch plan instantly without payment
-                      setPlan(plan);
-                    }}
-                    deleteIcon={currentPlan !== plan ? <Store sx={{ fontSize: 16 }} titleAccess="Developer Force Switch" /> : undefined}
                     variant={currentPlan === plan ? 'filled' : 'outlined'}
                     color={currentPlan === plan ? 'primary' : 'default'}
                     sx={{ fontWeight: 700, borderRadius: 2 }}

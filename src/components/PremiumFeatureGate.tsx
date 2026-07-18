@@ -2,7 +2,9 @@ import React from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
 import { Lock, Crown } from 'lucide-react';
 import { useTheme, alpha } from '@mui/material/styles';
-import { useSubscriptionStore, type Feature, type PlanTier } from '../store/useSubscriptionStore';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
+import type { Feature } from '../types/rbac';
+import type { PlanTier } from '../types/tenant';
 import { useUpgradeStore } from '../store/useUpgradeStore';
 
 interface PremiumFeatureGateProps {
@@ -12,7 +14,7 @@ interface PremiumFeatureGateProps {
   featureName: string;
 }
 
-export default function PremiumFeatureGate({ feature, children, requiredTier = 'Pro', featureName }: PremiumFeatureGateProps) {
+export default function PremiumFeatureGate({ feature, children, requiredTier = 'pro', featureName }: PremiumFeatureGateProps) {
   const theme = useTheme();
   const hasAccess = useSubscriptionStore(state => state.hasAccess(feature));
   const openUpgradeModal = useUpgradeStore(state => state.openModal);

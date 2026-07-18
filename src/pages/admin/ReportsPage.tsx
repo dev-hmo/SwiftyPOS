@@ -35,9 +35,9 @@ export default function ReportsPage() {
   const { sales } = useSalesStore();
 
   // --- DERIVE INVENTORY METRICS ---
-  const inventoryCategoryData = products.reduce((acc: any, product) => {
+  const inventoryCategoryData = products.reduce<{ name: string; items: number; value: number }[]>((acc, product) => {
     if (!product.category) return acc;
-    const existing = acc.find((c: any) => c.name === product.category);
+    const existing = acc.find(c => c.name === product.category);
     const value = product.price * (product.stock_quantity || 0);
     if (existing) {
       existing.items += (product.stock_quantity || 0);
@@ -52,9 +52,9 @@ export default function ReportsPage() {
   const totalRetailValue = products.reduce((sum, p) => sum + (p.price * (p.stock_quantity || 0)), 0);
 
   // --- DERIVE STAFF METRICS ---
-  const staffSalesData = sales.reduce((acc: any, sale) => {
+  const staffSalesData = sales.reduce<{ name: string; transactions: number; revenue: number }[]>((acc, sale) => {
     const cashier = sale.cashier || 'System';
-    const existing = acc.find((s: any) => s.name === cashier);
+    const existing = acc.find(s => s.name === cashier);
     if (existing) {
       existing.transactions += 1;
       existing.revenue += sale.total;
@@ -122,13 +122,13 @@ export default function ReportsPage() {
 
       {/* INVENTORY VALUATION TAB */}
       {activeTab === 1 && (
-        <PremiumFeatureGate feature="advanced_reports" featureName="Inventory Valuation" requiredTier="Pro">
+        <PremiumFeatureGate feature="advanced_reports" featureName="Inventory Valuation" requiredTier="pro">
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 7 }}>
               <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 450 }}>
                 <Typography variant="h6" fontWeight={800} mb={3}>Capital Distribution by Category</Typography>
                 <ResponsiveContainer width="100%" height="85%">
-                  <BarChart data={inventoryCategoryData.length > 0 ? inventoryCategoryData : [{name: 'No Data', value: 0}]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart data={inventoryCategoryData.length > 0 ? inventoryCategoryData : [{name: 'No Data', items: 0, value: 0}]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} />
                     <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} />
@@ -161,7 +161,7 @@ export default function ReportsPage() {
 
       {/* STAFF ACTIVITY TAB */}
       {activeTab === 2 && (
-        <PremiumFeatureGate feature="advanced_reports" featureName="Staff Activity Matrix" requiredTier="Pro">
+        <PremiumFeatureGate feature="advanced_reports" featureName="Staff Activity Matrix" requiredTier="pro">
           <Grid container spacing={4}>
             <Grid size={{ xs: 12 }}>
               <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 500 }}>

@@ -3,7 +3,6 @@ import { useConfigStore } from '../useConfigStore';
 
 describe('useConfigStore', () => {
   beforeEach(() => {
-    // Reset to default state
     useConfigStore.setState({
       categories: [
         { id: '1', name: 'Coffee Beans', productCount: 15 },
@@ -43,35 +42,77 @@ describe('useConfigStore', () => {
   describe('addCategory', () => {
     it('appends a new category with unique ID', () => {
       const result = useConfigStore.getState().addCategory('Beverages');
-      expect(result.name).toBe('Beverages');
-      expect(result.productCount).toBe(0);
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe('Beverages');
+      expect(result!.productCount).toBe(0);
       expect(useConfigStore.getState().categories).toHaveLength(4);
+    });
+
+    it('rejects duplicate category names', () => {
+      const result = useConfigStore.getState().addCategory('Coffee Beans');
+      expect(result).toBeNull();
+      expect(useConfigStore.getState().categories).toHaveLength(3);
+    });
+
+    it('rejects empty names', () => {
+      const result = useConfigStore.getState().addCategory('');
+      expect(result).toBeNull();
+    });
+
+    it('trims whitespace', () => {
+      const result = useConfigStore.getState().addCategory('  Beverages  ');
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe('Beverages');
     });
   });
 
   describe('addTax', () => {
     it('appends a new tax configuration', () => {
       const result = useConfigStore.getState().addTax('Luxury Tax', 15);
-      expect(result.name).toBe('Luxury Tax');
-      expect(result.rate).toBe(15);
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe('Luxury Tax');
+      expect(result!.rate).toBe(15);
       expect(useConfigStore.getState().taxes).toHaveLength(3);
+    });
+
+    it('rejects duplicate tax names', () => {
+      const result = useConfigStore.getState().addTax('Tax Exempt', 5);
+      expect(result).toBeNull();
+    });
+
+    it('rejects invalid rates', () => {
+      expect(useConfigStore.getState().addTax('Bad Tax', -5)).toBeNull();
+      expect(useConfigStore.getState().addTax('Bad Tax', 150)).toBeNull();
     });
   });
 
   describe('addIncomeAccount', () => {
     it('appends a new income account', () => {
       const result = useConfigStore.getState().addIncomeAccount('4200', 'Interest Income');
-      expect(result.code).toBe('4200');
-      expect(result.name).toBe('Interest Income');
+      expect(result).not.toBeNull();
+      expect(result!.code).toBe('4200');
+      expect(result!.name).toBe('Interest Income');
       expect(useConfigStore.getState().incomeAccounts).toHaveLength(3);
+    });
+
+    it('rejects duplicate codes', () => {
+      const result = useConfigStore.getState().addIncomeAccount('4000', 'New Name');
+      expect(result).toBeNull();
     });
   });
 
   describe('addExpenseAccount', () => {
     it('appends a new expense account', () => {
       const result = useConfigStore.getState().addExpenseAccount('5200', 'Rent');
-      expect(result.code).toBe('5200');
+      expect(result).not.toBeNull();
+      expect(result!.code).toBe('5200');
+      expect(result!.name).toBe('Rent');
       expect(useConfigStore.getState().expenseAccounts).toHaveLength(3);
+    });
+
+    it('rejects duplicate names', () => {
+      const result = useConfigStore.getState().addExpenseAccount('5200', 'Supplies Expense');
+      expect(result).toBeNull();
     });
   });
 });
