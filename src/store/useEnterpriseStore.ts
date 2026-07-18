@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export interface EnterpriseStoreItem {
   id: string;
@@ -24,6 +24,6 @@ export const useEnterpriseStore = create<EnterpriseState>()(
       stores: [],
       setStores: (stores) => set({ stores }),
     }),
-    { name: 'enterprise', storage: createTenantStorage('enterprise') }
+    { name: 'enterprise', storage: createAppStorage('enterprise') }
   )
 );

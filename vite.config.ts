@@ -20,9 +20,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4000000
       },
       manifest: {
-        name: 'Enterprise POS System',
-        short_name: 'EntPOS',
-        description: 'Professional Enterprise POS & Inventory System',
+        name: 'Swifty POS',
+        short_name: 'SwiftyPOS',
+        description: 'Professional POS & Inventory System',
         theme_color: '#6366f1',
         icons: [
           {

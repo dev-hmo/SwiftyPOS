@@ -1,5 +1,6 @@
 -- ============================================
 -- UPGRADE REQUESTS: Plan upgrade approval workflow
+-- (This table is dropped by migration 00003)
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS upgrade_requests (
@@ -21,23 +22,20 @@ CREATE TABLE IF NOT EXISTS upgrade_requests (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_upgrade_requests_tenant ON upgrade_requests(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_upgrade_requests_status ON upgrade_requests(status);
 CREATE INDEX IF NOT EXISTS idx_upgrade_requests_created ON upgrade_requests(created_at DESC);
 
--- ============================================
--- RLS POLICIES
--- ============================================
-
 ALTER TABLE upgrade_requests ENABLE ROW LEVEL SECURITY;
 
--- Super admins: full access
+DROP POLICY IF EXISTS "Super admins full access on upgrade_requests" ON upgrade_requests;
+DROP POLICY IF EXISTS "Tenant admins view own upgrade requests" ON upgrade_requests;
+DROP POLICY IF EXISTS "Tenant admins insert upgrade requests" ON upgrade_requests;
+
 CREATE POLICY "Super admins full access on upgrade_requests"
   ON upgrade_requests FOR ALL
   USING (is_super_admin());
 
--- Tenant admins: can view their own requests and insert new ones
 CREATE POLICY "Tenant admins view own upgrade requests"
   ON upgrade_requests FOR SELECT
   USING (tenant_id = get_user_tenant_id() AND get_user_tenant_role() = 'tenant_admin');
@@ -45,10 +43,6 @@ CREATE POLICY "Tenant admins view own upgrade requests"
 CREATE POLICY "Tenant admins insert upgrade requests"
   ON upgrade_requests FOR INSERT
   WITH CHECK (tenant_id = get_user_tenant_id() AND get_user_tenant_role() = 'tenant_admin');
-
--- ============================================
--- UPDATE TRIGGER
--- ============================================
 
 CREATE OR REPLACE FUNCTION update_upgrade_request_timestamp()
 RETURNS TRIGGER AS $$
@@ -58,6 +52,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tr_upgrade_requests_updated ON upgrade_requests;
 CREATE TRIGGER tr_upgrade_requests_updated
   BEFORE UPDATE ON upgrade_requests
   FOR EACH ROW EXECUTE FUNCTION update_upgrade_request_timestamp();

@@ -31,15 +31,7 @@ export interface Role {
 }
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  tenant_admin: [...SYSTEM_MODULES],
-  manager: [
-    'Overview',
-    'Sales & History',
-    'Inventory',
-    'Reports Hub',
-    'Activity Log',
-    'POS Terminal',
-    'Kitchen Display',
-  ],
-  cashier: ['Overview', 'Sales & History', 'POS Terminal', 'Kitchen Display'],
+  admin: [...SYSTEM_MODULES],
+  cashier: ['Overview', 'Sales & History', 'POS Terminal'],
+  kitchen: ['Kitchen Display'],
 };

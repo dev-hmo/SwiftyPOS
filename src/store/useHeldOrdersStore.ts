@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, Customer } from './useCartStore';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export interface HeldOrder {
   id: string;
@@ -43,6 +43,6 @@ export const useHeldOrdersStore = create<HeldOrdersState>()(
       removeHeldOrder: (id) =>
         set((state) => ({ orders: state.orders.filter((o) => o.id !== id) })),
     }),
-    { name: 'held-orders', storage: createTenantStorage('held-orders') }
+    { name: 'held-orders', storage: createAppStorage('held-orders') }
   )
 );

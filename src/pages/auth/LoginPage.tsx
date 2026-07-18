@@ -11,8 +11,6 @@ import {
   IconButton,
   useTheme,
   alpha,
-  Tabs,
-  Tab
 } from '@mui/material';
 import { 
   Visibility, 
@@ -27,15 +25,13 @@ import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const theme = useTheme();
-  const [tab, setTab] = React.useState(0);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [businessName, setBusinessName] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
-  const { login, signup, loginWithGoogle } = useAuthStore();
+  const { login, loginWithGoogle } = useAuthStore();
   const { logActivity } = useActivityStore();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,33 +48,14 @@ export default function LoginPage() {
     }
 
     logActivity('LOGIN', 'User authenticated via email/password', email);
-    if (useAuthStore.getState().role === 'super_admin') {
-      navigate('/super-admin');
+    const currentRole = useAuthStore.getState().role;
+    if (currentRole === 'cashier') {
+      navigate('/pos');
+    } else if (currentRole === 'kitchen') {
+      navigate('/kds');
     } else {
       navigate('/admin');
     }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!businessName.trim()) {
-      setError('Business name is required.');
-      return;
-    }
-
-    setIsLoading(true);
-    const result = await signup(email, password, businessName);
-    setIsLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    logActivity('LOGIN', 'New workspace created', email);
-    navigate('/admin');
   };
 
   const handleGoogleLogin = async () => {
@@ -157,174 +134,78 @@ export default function LoginPage() {
                 Welcome back
               </Typography>
               <Typography sx={{ color: '#6A6A6A', fontWeight: 500 }}>
-                {tab === 0 ? 'Sign in to your workspace' : 'Create a new workspace'}
+                Sign in to your account
               </Typography>
             </Box>
 
-            <Tabs 
-              value={tab} 
-              onChange={(_, v) => { setTab(v); setError(''); }} 
-              variant="fullWidth" 
-              sx={{ mb: 4, '& .MuiTab-root': { fontWeight: 700, textTransform: 'none' } }}
-            >
-              <Tab label="Sign In" />
-              <Tab label="Sign Up" />
-            </Tabs>
-
             {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>{error}</Alert>}
 
-            {tab === 0 ? (
-              <form onSubmit={handleLogin}>
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02)
-                    }
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  slotProps={{
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                  sx={{ 
-                    mb: 4,
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02)
-                    }
-                  }}
-                />
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  type="submit"
-                  disabled={isLoading}
-                  sx={{ 
-                    py: 1.8, 
-                    borderRadius: 3, 
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    letterSpacing: 0.5,
-                    boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
-                    '&:hover': {
-                      boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.6)}`,
-                    }
-                  }}
-                >
-                  {isLoading ? 'Signing In...' : 'SIGN IN'}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleSignup}>
-                <TextField
-                  fullWidth
-                  label="Business Name"
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  helperText="This will be your workspace name"
-                  sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02)
-                    }
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02)
-                    }
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  variant="outlined"
-                  margin="normal"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  helperText="Minimum 6 characters"
-                  slotProps={{
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                  sx={{ 
-                    mb: 4,
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02)
-                    }
-                  }}
-                />
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  type="submit"
-                  disabled={isLoading}
-                  sx={{ 
-                    py: 1.8, 
-                    borderRadius: 3, 
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    letterSpacing: 0.5,
-                    boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
-                    '&:hover': {
-                      boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.6)}`,
-                    }
-                  }}
-                >
-                  {isLoading ? 'Creating Workspace...' : 'CREATE WORKSPACE'}
-                </Button>
-              </form>
-            )}
+            <form onSubmit={handleLogin}>
+              <TextField
+                fullWidth
+                label="Email Address"
+                type="email"
+                variant="outlined"
+                margin="normal"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    bgcolor: alpha(theme.palette.primary.main, 0.02)
+                  }
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                variant="outlined"
+                margin="normal"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{ 
+                  mb: 4,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    bgcolor: alpha(theme.palette.primary.main, 0.02)
+                  }
+                }}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                type="submit"
+                disabled={isLoading}
+                sx={{ 
+                  py: 1.8, 
+                  borderRadius: 3, 
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  letterSpacing: 0.5,
+                  boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                  '&:hover': {
+                    boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.6)}`,
+                  }
+                }}
+              >
+                {isLoading ? 'Signing In...' : 'SIGN IN'}
+              </Button>
+            </form>
 
             <Box sx={{ my: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />

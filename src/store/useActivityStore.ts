@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export type ActivityAction =
   | 'LOGIN'
@@ -48,6 +48,6 @@ export const useActivityStore = create<ActivityState>()(
         }),
       clearLog: () => set({ entries: [] }),
     }),
-    { name: 'activity', storage: createTenantStorage('activity') }
+    { name: 'activity', storage: createAppStorage('activity') }
   )
 );

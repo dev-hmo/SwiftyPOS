@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { calculateSubtotal } from '../utils/calculations';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export interface CartItem {
   id: string;
@@ -94,6 +94,6 @@ export const useCartStore = create<CartState>()(
       setCustomer: (customer) => set({ customer }),
       getSubtotal: () => calculateSubtotal(get().items),
     }),
-    { name: 'cart', storage: createTenantStorage('cart') }
+    { name: 'cart', storage: createAppStorage('cart') }
   )
 );

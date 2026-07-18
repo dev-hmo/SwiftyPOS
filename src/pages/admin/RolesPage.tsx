@@ -10,7 +10,7 @@ import { Add, Edit, Delete, Security, VerifiedUser } from '@mui/icons-material';
 import { useRolesStore } from '../../store/useRolesStore';
 import { SYSTEM_MODULES } from '../../types/rbac';
 import type { Role } from '../../types/rbac';
-import PremiumFeatureGate from '../../components/PremiumFeatureGate';
+
 
 export default function RolesPage() {
   const theme = useTheme();
@@ -79,16 +79,14 @@ export default function RolesPage() {
             Manage Role-Based Access Control (RBAC) and assign module permissions.
           </Typography>
         </Box>
-        <PremiumFeatureGate feature="custom_rbac" featureName="Custom Role Engine" requiredTier="enterprise">
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenModal()}
-            sx={{ borderRadius: 3, px: 3, py: 1 }}
-          >
-            Create Custom Role
-          </Button>
-        </PremiumFeatureGate>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => handleOpenModal()}
+          sx={{ borderRadius: 3, px: 3, py: 1 }}
+        >
+          Create Custom Role
+        </Button>
       </Box>
 
       {/* Roles Table - Visible to everyone */}
@@ -126,7 +124,7 @@ export default function RolesPage() {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      {role.id === 'tenant_admin' ? (
+                      {role.id === 'admin' ? (
                         <Chip label="All Modules" size="small" color="success" sx={{ borderRadius: 1.5, fontWeight: 700 }} />
                       ) : (
                         role.permissions.map(p => (
@@ -136,7 +134,7 @@ export default function RolesPage() {
                     </Box>
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton color="primary" onClick={() => handleOpenModal(role)} disabled={role.id === 'tenant_admin'}>
+                    <IconButton color="primary" onClick={() => handleOpenModal(role)} disabled={role.id === 'admin'}>
                       <Edit fontSize="small" />
                     </IconButton>
                     <IconButton color="error" onClick={() => deleteRole(role.id)} disabled={!role.isCustom}>

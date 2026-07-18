@@ -1,8 +1,7 @@
 -- Phase 2: Enterprise Enhancements
 
 -- 1. Store-specific Stock (Multi-warehouse)
--- Instead of one stock_quantity in products, we move it to a product_stocks table
-CREATE TABLE product_stocks (
+CREATE TABLE IF NOT EXISTS product_stocks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID REFERENCES products(id) ON DELETE CASCADE,
   store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
@@ -11,11 +10,8 @@ CREATE TABLE product_stocks (
   UNIQUE(product_id, store_id)
 );
 
--- Migrate existing total stock to a default store (if any exists)
--- This is a placeholder for actual migration logic if there was existing data
-
 -- 2. Customer Loyalty Table
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   email TEXT UNIQUE,
@@ -26,7 +22,7 @@ CREATE TABLE customers (
 );
 
 -- 3. Discounts & Promotions
-CREATE TABLE promotions (
+CREATE TABLE IF NOT EXISTS promotions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT UNIQUE NOT NULL,
   description TEXT,
@@ -40,7 +36,6 @@ CREATE TABLE promotions (
 );
 
 -- 4. Advanced Audit Logs Triggers
--- Log every update to products
 CREATE OR REPLACE FUNCTION log_product_changes()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -56,19 +51,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tr_log_product_changes ON products;
 CREATE TRIGGER tr_log_product_changes
 AFTER INSERT OR UPDATE OR DELETE ON products
 FOR EACH ROW EXECUTE FUNCTION log_product_changes();
 
--- 5. Stricter RLS for multi-store
--- Cashiers can only see sales from their assigned store
--- (requires a user_roles / user_stores table for full enforcement, using a simple role check for now)
-
+-- 5. RLS
 ALTER TABLE product_stocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Managers can view all stocks" ON product_stocks;
+DROP POLICY IF EXISTS "Admin full access stocks" ON product_stocks;
+DROP POLICY IF EXISTS "Everyone can view promotions" ON promotions;
+
 CREATE POLICY "Managers can view all stocks" ON product_stocks FOR SELECT TO authenticated USING (TRUE);
 CREATE POLICY "Admin full access stocks" ON product_stocks FOR ALL TO authenticated USING (auth.jwt() ->> 'role' = 'admin');
-
 CREATE POLICY "Everyone can view promotions" ON promotions FOR SELECT TO authenticated USING (is_active = TRUE);

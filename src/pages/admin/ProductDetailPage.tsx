@@ -10,7 +10,7 @@ import { Save, ArrowBack, Delete, Add, Inventory, AccountBalanceWallet, Descript
 import { useConfigStore } from '../../store/useConfigStore';
 import { useInventoryStore, type RecipeItem } from '../../store/useInventoryStore';
 import { motion } from 'framer-motion';
-import PremiumFeatureGate from '../../components/PremiumFeatureGate';
+
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -349,75 +349,73 @@ export default function ProductDetailPage() {
 
             {/* TAB 3: RECIPE (BOM) */}
             {activeTab === 3 && (
-              <PremiumFeatureGate feature="recipes" featureName="Recipe Costing Engine (BOM)" requiredTier="pro">
-                <Box>
-                  <Typography variant="h6" fontWeight={900} mb={2}>Bill of Materials (BOM)</Typography>
-                  <Typography color="text.secondary" mb={5} fontWeight={500}>Specify the raw ingredients and quantities required to produce one unit of this product.</Typography>
-                  
-                  {formData.recipe.map((recipeItem, index) => {
-                    const ingredient = ingredients.find(i => i.id === recipeItem.ingredientId);
-                    return (
-                      <Paper key={index} elevation={0} sx={{ p: 4, mb: 3, borderRadius: 5, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, bgcolor: alpha(theme.palette.action.hover, 0.02) }}>
-                        <Grid container spacing={3} alignItems="center">
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <FormControl fullWidth variant="outlined">
-                              <InputLabel sx={{ fontWeight: 700 }}>Ingredient Component</InputLabel>
-                              <Select 
-                                value={recipeItem.ingredientId} 
-                                label="Ingredient Component"
-                                onChange={(e) => {
-                                  const newRecipe = [...formData.recipe];
-                                  newRecipe[index].ingredientId = e.target.value;
-                                  setFormData({...formData, recipe: newRecipe});
-                                }}
-                                sx={{ bgcolor: 'background.paper', borderRadius: 3 }}
-                              >
-                                {ingredients.map(ing => (
-                                  <MenuItem key={ing.id} value={ing.id} sx={{ py: 1.5 }}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                      <Typography fontWeight={700}>{ing.name}</Typography>
-                                      <Typography color="text.secondary">({ing.unit})</Typography>
-                                    </Box>
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </Grid>
-                          <Grid size={{ xs: 12, sm: 4 }}>
-                            <TextField 
-                              fullWidth label="Quantity needed" type="number" 
-                              value={recipeItem.quantity} 
-                              InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 800 }}>{ingredient?.unit || 'units'}</InputAdornment> }}
+              <Box>
+                <Typography variant="h6" fontWeight={900} mb={2}>Bill of Materials (BOM)</Typography>
+                <Typography color="text.secondary" mb={5} fontWeight={500}>Specify the raw ingredients and quantities required to produce one unit of this product.</Typography>
+                
+                {formData.recipe.map((recipeItem, index) => {
+                  const ingredient = ingredients.find(i => i.id === recipeItem.ingredientId);
+                  return (
+                    <Paper key={index} elevation={0} sx={{ p: 4, mb: 3, borderRadius: 5, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, bgcolor: alpha(theme.palette.action.hover, 0.02) }}>
+                      <Grid container spacing={3} alignItems="center">
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <FormControl fullWidth variant="outlined">
+                            <InputLabel sx={{ fontWeight: 700 }}>Ingredient Component</InputLabel>
+                            <Select 
+                              value={recipeItem.ingredientId} 
+                              label="Ingredient Component"
                               onChange={(e) => {
-                                  const newRecipe = [...formData.recipe];
-                                  newRecipe[index].quantity = parseFloat(e.target.value) || 0;
-                                  setFormData({...formData, recipe: newRecipe});
+                                const newRecipe = [...formData.recipe];
+                                newRecipe[index].ingredientId = e.target.value;
+                                setFormData({...formData, recipe: newRecipe});
                               }}
-                              sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 3 } }} 
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 12, sm: 2 }} sx={{ display: 'flex', justifyContent: 'center' }}>
-                            <IconButton color="error" size="large" onClick={() => {
-                              setFormData({...formData, recipe: formData.recipe.filter((_, i) => i !== index)});
-                            }} sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}><Delete /></IconButton>
-                          </Grid>
+                              sx={{ bgcolor: 'background.paper', borderRadius: 3 }}
+                            >
+                              {ingredients.map(ing => (
+                                <MenuItem key={ing.id} value={ing.id} sx={{ py: 1.5 }}>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                    <Typography fontWeight={700}>{ing.name}</Typography>
+                                    <Typography color="text.secondary">({ing.unit})</Typography>
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
                         </Grid>
-                      </Paper>
-                    )
-                  })}
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                          <TextField 
+                            fullWidth label="Quantity needed" type="number" 
+                            value={recipeItem.quantity} 
+                            InputProps={{ endAdornment: <InputAdornment position="end" sx={{ fontWeight: 800 }}>{ingredient?.unit || 'units'}</InputAdornment> }}
+                            onChange={(e) => {
+                                const newRecipe = [...formData.recipe];
+                                newRecipe[index].quantity = parseFloat(e.target.value) || 0;
+                                setFormData({...formData, recipe: newRecipe});
+                            }}
+                            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', borderRadius: 3 } }} 
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 2 }} sx={{ display: 'flex', justifyContent: 'center' }}>
+                          <IconButton color="error" size="large" onClick={() => {
+                            setFormData({...formData, recipe: formData.recipe.filter((_, i) => i !== index)});
+                          }} sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}><Delete /></IconButton>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  )
+                })}
 
-                  <Button 
-                    variant="outlined" startIcon={<Add />} 
-                    onClick={() => {
-                      const firstIng = ingredients[0]?.id || '';
-                      setFormData({...formData, recipe: [...formData.recipe, { ingredientId: firstIng, quantity: 1 }]})
-                    }}
-                    sx={{ borderRadius: 3, fontWeight: 700, px: 4, py: 1.5, borderStyle: 'dashed', borderWidth: 2 }}
-                  >
-                    Add Ingredient to Recipe
-                  </Button>
-                </Box>
-              </PremiumFeatureGate>
+                <Button 
+                  variant="outlined" startIcon={<Add />} 
+                  onClick={() => {
+                    const firstIng = ingredients[0]?.id || '';
+                    setFormData({...formData, recipe: [...formData.recipe, { ingredientId: firstIng, quantity: 1 }]})
+                  }}
+                  sx={{ borderRadius: 3, fontWeight: 700, px: 4, py: 1.5, borderStyle: 'dashed', borderWidth: 2 }}
+                >
+                  Add Ingredient to Recipe
+                </Button>
+              </Box>
             )}
 
             {/* TAB 4: VARIANTS */}

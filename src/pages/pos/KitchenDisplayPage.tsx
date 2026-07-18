@@ -8,7 +8,7 @@ import {
   NotificationsActive, AccessTime 
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import PremiumFeatureGate from '../../components/PremiumFeatureGate';
+
 import { useKDSStore, type KDSOrder } from '../../store/useKDSStore';
 
 // Orders now managed via global useKDSStore
@@ -180,8 +180,7 @@ export default function KitchenDisplayPage() {
       </Box>
 
       {/* Order Columns */}
-      <PremiumFeatureGate feature="kds" featureName="Kitchen Display System" requiredTier="pro">
-        <Grid container spacing={3}>
+      <Grid container spacing={3}>
           {/* NEW ORDERS */}
           <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -236,7 +235,6 @@ export default function KitchenDisplayPage() {
             </Box>
           </Grid>
         </Grid>
-      </PremiumFeatureGate>
     </Box>
   );
 }

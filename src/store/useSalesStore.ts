@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export interface SaleRecord {
   id: string;
@@ -78,6 +78,6 @@ export const useSalesStore = create<SalesState>()(
         return get().sales.find((s) => s.id === id);
       },
     }),
-    { name: 'sales', storage: createTenantStorage('sales') }
+    { name: 'sales', storage: createAppStorage('sales') }
   )
 );

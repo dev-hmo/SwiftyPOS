@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 
 export interface KDSItem {
@@ -63,7 +63,7 @@ export const useKDSStore = create<KDSState>()(
     }),
     {
       name: 'kds',
-      storage: createTenantStorage('kds'),
+      storage: createAppStorage('kds'),
     }
   )
 );

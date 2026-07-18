@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export interface Category {
   id: string;
@@ -103,6 +103,6 @@ export const useConfigStore = create<ConfigState>()(
         return newAcc;
       },
     }),
-    { name: 'config', storage: createTenantStorage('config') }
+    { name: 'config', storage: createAppStorage('config') }
   )
 );

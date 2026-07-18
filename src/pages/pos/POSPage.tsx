@@ -595,16 +595,15 @@ export default function POSPage() {
                 variant="contained" fullWidth
                 disabled={!selectedPaymentMethod || items.length === 0}
                     onClick={() => {
-                      // Generate receipt data before sale
-                      const now = new Date();
-                      const yy = now.getFullYear().toString().slice(2);
-                      const mm = (now.getMonth() + 1).toString().padStart(2, '0');
-                      const seq = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-                      const receiptNum = `SML-${yy}${mm}-${seq}`;
-                      const receiptDate = now.toISOString();
-                      setReceiptData({ number: receiptNum, date: receiptDate });
+                      // Deduct stock FIRST — if this fails, don't record the sale
+                      try {
+                        deductStockFromSale(items.map(i => ({ productId: i.id, quantity: i.quantity })));
+                      } catch (err) {
+                        enqueue(err instanceof Error ? err.message : 'Insufficient stock', 'error');
+                        return;
+                      }
 
-                      // Record the sale
+                      // Record the sale (generates receipt number atomically)
                       const sale = addSale({
                     items: items.map(i => ({ name: i.name, sku: i.sku, quantity: i.quantity, price: i.price, discount: i.discount })),
                     subtotal,
@@ -617,13 +616,13 @@ export default function POSPage() {
                     customer: customer?.name || null,
                   });
                   
-                  // Deduct specific BOM ingredients linked to the sold products
-                  deductStockFromSale(items.map(i => ({ productId: i.id, quantity: i.quantity })));
+                  // Set receipt data from the sale record (no random collision)
+                  setReceiptData({ number: sale.receiptNumber, date: sale.createdAt });
                   
                   // Push to KDS if any items are prepared (Coffee, Tea, Pastries)
                   const kitchenItems = items
                     .filter(i => i.category != null && ['Coffee', 'Tea', 'Pastries'].includes(i.category))
-                    .map(i => ({ name: i.name, quantity: i.quantity, notes: '' })); // Notes could be a future feature
+                    .map(i => ({ name: i.name, quantity: i.quantity, notes: '' }));
 
                   if (kitchenItems.length > 0) {
                     addOrder({

@@ -5,12 +5,9 @@ import {
 } from '@mui/material';
 import { 
   Store, Receipt, Palette, Save, RestartAlt, Print, 
-  CreditCard, WorkspacePremium
+  CreditCard
 } from '@mui/icons-material';
-import { useSubscriptionStore } from '../../store/useSubscriptionStore';
-import { useUpgradeStore } from '../../store/useUpgradeStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import type { PlanTier } from '../../types/tenant';
 
 interface StoreSettings {
   storeName: string;
@@ -33,7 +30,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   storeEmail: 'hello@swiftypos.com',
   taxRate: '8',
   currency: 'USD',
-  receiptFooter: 'Thank you for your visit! ☕',
+  receiptFooter: 'Thank you for your visit!',
   enableSound: true,
   enableAnimations: true,
   enableAutoLock: false,
@@ -55,38 +52,28 @@ function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title
   );
 }
 
-function getSettingsKey(tenantId: string | null | undefined): string {
-  return tenantId ? `pos-settings-${tenantId}` : 'pos-settings';
+function getSettingsKey(): string {
+  return 'pos-settings';
 }
 
-/** Tenant-scoped localStorage wrapper to prevent cross-tenant data leaks. */
-function tenantScopedStorage(tenantId: string | null | undefined) {
-  const key = getSettingsKey(tenantId);
-  return {
-    load: (): StoreSettings => {
-      try {
-        const saved = localStorage.getItem(key);
-        return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
-      } catch {
-        return DEFAULT_SETTINGS;
-      }
-    },
-    save: (settings: StoreSettings) => {
-      localStorage.setItem(key, JSON.stringify(settings));
-    },
-  };
+function loadSettings(): StoreSettings {
+  try {
+    const saved = localStorage.getItem(getSettingsKey());
+    return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(settings: StoreSettings) {
+  localStorage.setItem(getSettingsKey(), JSON.stringify(settings));
 }
 
 export default function SettingsPage() {
   const theme = useTheme();
   const { user } = useAuthStore();
-  const storage = tenantScopedStorage(user?.tenantId);
-
-  const [settings, setSettings] = useState<StoreSettings>(() => storage.load());
+  const [settings, setSettings] = useState<StoreSettings>(() => loadSettings());
   const [saved, setSaved] = useState(false);
-  
-  const { currentPlan } = useSubscriptionStore();
-  const openUpgradeModal = useUpgradeStore(state => state.openModal);
 
   const handleChange = (field: keyof StoreSettings, value: string | boolean) => {
     setSettings(prev => ({ ...prev, [field]: value }));
@@ -96,11 +83,11 @@ export default function SettingsPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSave = useCallback(() => {
-    storage.save(settings);
+    saveSettings(settings);
     setSaved(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setSaved(false), 3000);
-  }, [settings, storage]);
+  }, [settings]);
 
   const handleReset = () => {
     setSettings(DEFAULT_SETTINGS);
@@ -110,6 +97,15 @@ export default function SettingsPage() {
   useEffect(() => {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
+
+  if (user?.role !== 'admin') {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h5" fontWeight={800}>Access Denied</Typography>
+        <Typography color="text.secondary">Only administrators can access settings.</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -127,7 +123,6 @@ export default function SettingsPage() {
       {saved && <Alert severity="success" sx={{ mb: 3, borderRadius: 3, fontWeight: 700 }}>Settings saved successfully!</Alert>}
 
       <Grid container spacing={3}>
-        {/* Store Information */}
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, height: '100%' }}>
             <SectionHeader icon={<Store />} title="Store Information" subtitle="Your business profile and branding" />
@@ -142,7 +137,6 @@ export default function SettingsPage() {
           </Paper>
         </Grid>
 
-        {/* Tax & Currency */}
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, height: '100%' }}>
             <SectionHeader icon={<CreditCard />} title="Tax & Currency" subtitle="Configure tax rates and regional settings" />
@@ -174,7 +168,6 @@ export default function SettingsPage() {
           </Paper>
         </Grid>
 
-        {/* Receipt Configuration */}
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}` }}>
             <SectionHeader icon={<Receipt />} title="Receipt Configuration" subtitle="Customize printable receipt content" />
@@ -187,38 +180,6 @@ export default function SettingsPage() {
           </Paper>
         </Grid>
 
-        {/* Subscription & Billing */}
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, height: '100%' }}>
-            <SectionHeader icon={<WorkspacePremium />} title="Workspace Subscription" subtitle="Manage your Swifty POS billing tier" />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <Box sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` }}>
-                <Typography variant="overline" color="text.secondary" fontWeight={800}>Current Plan</Typography>
-                <Typography variant="h4" color="primary.main" fontWeight={900}>{currentPlan}</Typography>
-              </Box>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>Manage Plan Enrollment</Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {(['free', 'standard', 'pro', 'enterprise'] as PlanTier[]).map(plan => (
-                  <Chip
-                    key={plan}
-                    label={plan}
-                    clickable
-                    onClick={() => {
-                      if (currentPlan === plan) return;
-                      openUpgradeModal(plan);
-                    }}
-                    variant={currentPlan === plan ? 'filled' : 'outlined'}
-                    color={currentPlan === plan ? 'primary' : 'default'}
-                    sx={{ fontWeight: 700, borderRadius: 2 }}
-                  />
-                ))}
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* System Preferences */}
         <Grid size={{ xs: 12, lg: 6 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}` }}>
             <SectionHeader icon={<Palette />} title="System Preferences" subtitle="Control behavior and UI settings" />

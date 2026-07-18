@@ -26,7 +26,6 @@ describe('useAuthStore', () => {
       user: null,
       role: null,
       isHydrated: false,
-      memberships: [],
     });
     localStorage.clear();
   });
@@ -37,13 +36,11 @@ describe('useAuthStore', () => {
         id: 'u1',
         email: 'admin@test.com',
         name: 'Admin',
-        role: 'tenant_admin' as const,
-        tenantId: 't1',
-        tenantSlug: 'test-workspace',
+        role: 'admin' as const,
       };
       useAuthStore.getState().setUser(mockUser);
       expect(useAuthStore.getState().user).toEqual(mockUser);
-      expect(useAuthStore.getState().role).toBe('tenant_admin');
+      expect(useAuthStore.getState().role).toBe('admin');
     });
 
     it('accepts null to clear user', () => {
@@ -51,9 +48,7 @@ describe('useAuthStore', () => {
         id: 'u1',
         email: 'a@b.com',
         name: 'A',
-        role: 'tenant_admin',
-        tenantId: 't1',
-        tenantSlug: 'a',
+        role: 'admin',
       });
       useAuthStore.getState().setUser(null);
       expect(useAuthStore.getState().user).toBeNull();
@@ -63,12 +58,12 @@ describe('useAuthStore', () => {
 
   describe('setRole', () => {
     it('sets the user role', () => {
-      useAuthStore.getState().setRole('tenant_admin');
-      expect(useAuthStore.getState().role).toBe('tenant_admin');
+      useAuthStore.getState().setRole('admin');
+      expect(useAuthStore.getState().role).toBe('admin');
     });
 
     it('accepts all valid roles', () => {
-      const roles = ['super_admin', 'tenant_admin', 'manager', 'cashier'] as const;
+      const roles = ['admin', 'cashier', 'kitchen'] as const;
       roles.forEach((role) => {
         useAuthStore.getState().setRole(role);
         expect(useAuthStore.getState().role).toBe(role);
@@ -82,11 +77,9 @@ describe('useAuthStore', () => {
         id: 'u1',
         email: 'test@x.com',
         name: 'Test',
-        role: 'tenant_admin',
-        tenantId: 't1',
-        tenantSlug: 'test',
+        role: 'admin',
       });
-      useAuthStore.getState().setRole('tenant_admin');
+      useAuthStore.getState().setRole('admin');
       await useAuthStore.getState().logout();
 
       const state = useAuthStore.getState();
@@ -107,41 +100,6 @@ describe('useAuthStore', () => {
     it('marks the store as hydrated', () => {
       useAuthStore.getState().setHydrated();
       expect(useAuthStore.getState().isHydrated).toBe(true);
-    });
-  });
-
-  describe('switchTenant', () => {
-    it('updates user tenant context', async () => {
-      useAuthStore.setState({
-        user: {
-          id: 'u1',
-          email: 'test@x.com',
-          name: 'Test',
-          role: 'manager',
-          tenantId: 't1',
-          tenantSlug: 'workspace-1',
-        },
-        memberships: [
-          {
-            user_id: 'u1',
-            tenant_id: 't1',
-            role: 'manager',
-            is_active: true,
-            created_at: '2024-01-01',
-          },
-          {
-            user_id: 'u1',
-            tenant_id: 't2',
-            role: 'tenant_admin',
-            is_active: true,
-            created_at: '2024-01-01',
-          },
-        ],
-      });
-
-      await useAuthStore.getState().switchTenant('t2');
-      expect(useAuthStore.getState().user?.tenantId).toBe('t2');
-      expect(useAuthStore.getState().user?.role).toBe('tenant_admin');
     });
   });
 });

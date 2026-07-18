@@ -1,14 +1,12 @@
 import { supabase } from '../lib/supabase';
-import type { DBProduct, DBSaleTransaction } from '../types/pos';
+import type { DBProduct, DBSaleTransaction, DBIngredient, DBProductRecipe, DBStockHistory } from '../types/pos';
 import {
-  requireTenantContext,
-  requireManagerContext,
-  requireOwnerContext,
-} from '../lib/tenant-context';
-import type { TenantContext } from '../lib/tenant-context';
+  requireAdminContext,
+  requireStaffContext,
+} from '../lib/auth-context';
 import { getUserEmails } from '../lib/user-emails';
 
-const SYSTEM_FIELDS = new Set(['id', 'created_at', 'updated_at', 'tenant_id']);
+const SYSTEM_FIELDS = new Set(['id', 'created_at', 'updated_at']);
 
 function sanitizeFields(data: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
@@ -24,22 +22,21 @@ type ProductRow = DBProduct;
 
 export const ProductService = {
   async getAll(): Promise<ProductRow[]> {
-    const { tenantId } = requireTenantContext();
+    requireStaffContext();
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data ?? [];
   },
 
   async create(product: Record<string, unknown>): Promise<ProductRow[]> {
-    const { tenantId } = requireManagerContext();
+    requireAdminContext();
     const clean = sanitizeFields(product);
     const { data, error } = await supabase
       .from('products')
-      .insert([{ ...clean, tenant_id: tenantId }])
+      .insert([clean])
       .select();
     if (error) throw error;
     return data ?? [];
@@ -47,13 +44,12 @@ export const ProductService = {
 
   async update(id: string, updates: Record<string, unknown>): Promise<ProductRow[]> {
     if (!id) throw new Error('Product ID is required');
-    const { tenantId } = requireManagerContext();
+    requireAdminContext();
     const clean = sanitizeFields(updates);
     const { data, error } = await supabase
       .from('products')
       .update(clean)
       .eq('id', id)
-      .eq('tenant_id', tenantId)
       .select();
     if (error) throw error;
     return data ?? [];
@@ -61,12 +57,11 @@ export const ProductService = {
 
   async delete(id: string): Promise<void> {
     if (!id) throw new Error('Product ID is required');
-    const { tenantId } = requireManagerContext();
+    requireAdminContext();
     const { error } = await supabase
       .from('products')
       .delete()
-      .eq('id', id)
-      .eq('tenant_id', tenantId);
+      .eq('id', id);
     if (error) throw error;
   },
 };
@@ -87,24 +82,7 @@ export interface SaleItemInput {
   price: number;
 }
 
-/**
- * Helper: creates a tenant-scoped delete query for a given table and row ID.
- * Prevents BOLA by always including tenant_id in the WHERE clause.
- */
-function tenantScopedDelete(ctx: TenantContext, table: string, rowId: string) {
-  return supabase
-    .from(table)
-    .delete()
-    .eq('id', rowId)
-    .eq('tenant_id', ctx.tenantId);
-}
-
 export const TransactionService = {
-  /**
-   * Processes a sale via two sequential inserts (header + line items).
-   * On partial failure, cleans up the orphaned header using a
-   * tenant-scoped delete to prevent BOLA.
-   */
   async processSale(saleData: SaleData, items: SaleItemInput[]) {
     if (!items || items.length === 0) {
       throw new Error('Cannot process sale with zero items');
@@ -118,14 +96,13 @@ export const TransactionService = {
       if (item.price < 0) throw new Error(`Price cannot be negative for item ${item.id}`);
     }
 
-    const ctx = requireTenantContext();
+    const ctx = requireStaffContext();
     const cashierId = saleData.cashier_id ?? ctx.userId;
 
     const { data: transaction, error: txError } = await supabase
       .from('sales_transactions')
       .insert([{
         ...saleData,
-        tenant_id: ctx.tenantId,
         cashier_id: cashierId,
       }])
       .select()
@@ -139,7 +116,6 @@ export const TransactionService = {
       quantity: item.quantity,
       unit_price: item.price,
       total_price: Math.round(item.price * item.quantity * 100) / 100,
-      tenant_id: ctx.tenantId,
     }));
 
     const { error: itemsError } = await supabase
@@ -147,8 +123,10 @@ export const TransactionService = {
       .insert(saleItems);
 
     if (itemsError) {
-      // BOLA FIX: orphan cleanup MUST include tenant_id filter
-      await tenantScopedDelete(ctx, 'sales_transactions', transaction.id);
+      await supabase
+        .from('sales_transactions')
+        .delete()
+        .eq('id', transaction.id);
       throw itemsError;
     }
 
@@ -157,20 +135,16 @@ export const TransactionService = {
 };
 
 /**
- * Staff management service — only callable by tenant_admin.
- * All mutations go through SECURITY DEFINER RPCs so the database
- * enforces the tenant boundary server-side.
+ * Staff management service — only callable by admin.
  */
 export const StaffService = {
-  /** List all staff members in the current tenant. */
   async listStaff() {
-    const { tenantId } = requireOwnerContext();
+    requireAdminContext();
 
     const { data, error } = await supabase
       .from('user_tenants')
-      .select('user_id, role, is_active, created_at')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
+      .select('id, user_id, role')
+      .order('id', { ascending: false });
 
     if (error) throw error;
 
@@ -182,20 +156,16 @@ export const StaffService = {
       userId: membership.user_id,
       email: emailMap.get(membership.user_id) ?? 'unknown',
       role: membership.role,
-      isActive: membership.is_active,
-      joinedAt: membership.created_at,
     }));
 
     return staffList;
   },
 
-  /** Invite or add a staff member to the tenant. */
-  async inviteStaff(email: string, role: 'manager' | 'cashier') {
-    const { tenantId } = requireOwnerContext();
+  async inviteStaff(email: string, role: 'admin' | 'cashier' | 'kitchen') {
+    requireAdminContext();
 
     const { data, error } = await supabase.rpc('invite_staff_to_tenant', {
       p_email: email,
-      p_tenant_id: tenantId,
       p_role: role,
     });
 
@@ -203,31 +173,219 @@ export const StaffService = {
     return data;
   },
 
-  /** Deactivate a staff member (soft-delete). */
   async deactivateStaff(userId: string) {
-    const { tenantId } = requireOwnerContext();
+    requireAdminContext();
 
     const { error } = await supabase
       .from('user_tenants')
-      .update({ is_active: false })
-      .eq('user_id', userId)
-      .eq('tenant_id', tenantId);
+      .delete()
+      .eq('user_id', userId);
 
     if (error) throw error;
   },
 
-  /** Update a staff member's role. */
-  async updateStaffRole(userId: string, newRole: 'manager' | 'cashier') {
-    const { tenantId } = requireOwnerContext();
+  async updateStaffRole(userId: string, newRole: 'admin' | 'cashier' | 'kitchen') {
+    requireAdminContext();
 
     const { error } = await supabase
       .from('user_tenants')
       .update({ role: newRole })
-      .eq('user_id', userId)
-      .eq('tenant_id', tenantId);
+      .eq('user_id', userId);
 
     if (error) throw error;
   },
 };
 
 export type { DBSaleTransaction as SaleTransaction };
+
+// ─── Ingredients ─────────────────────────────────────────────
+
+type IngredientRow = DBIngredient;
+
+export const IngredientService = {
+  async getAll(): Promise<IngredientRow[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('ingredients')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async getById(id: string): Promise<IngredientRow | null> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('ingredients')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async create(row: Record<string, unknown>): Promise<IngredientRow[]> {
+    requireAdminContext();
+    const clean = sanitizeFields(row);
+    const { data, error } = await supabase
+      .from('ingredients')
+      .insert([clean])
+      .select();
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async update(id: string, updates: Record<string, unknown>): Promise<IngredientRow[]> {
+    if (!id) throw new Error('Ingredient ID is required');
+    requireAdminContext();
+    const clean = sanitizeFields(updates);
+    const { data, error } = await supabase
+      .from('ingredients')
+      .update(clean)
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async delete(id: string): Promise<void> {
+    if (!id) throw new Error('Ingredient ID is required');
+    requireAdminContext();
+    const { error } = await supabase
+      .from('ingredients')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /**
+   * Adjust stock for an ingredient and log the change.
+   * Pass a negative delta for outbound, positive for inbound.
+   */
+  async adjustStock(
+    ingredientId: string,
+    delta: number,
+    changeType: DBStockHistory['change_type'],
+    note?: string,
+    transactionId?: string,
+  ): Promise<void> {
+    if (!ingredientId) throw new Error('Ingredient ID is required');
+
+    const { data: ing, error: fetchErr } = await supabase
+      .from('ingredients')
+      .select('current_stock')
+      .eq('id', ingredientId)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    const previous = ing.current_stock as number;
+    const next = Math.round((previous + delta) * 1000) / 1000;
+    if (next < 0) throw new Error('Insufficient stock');
+
+    const { error: updateErr } = await supabase
+      .from('ingredients')
+      .update({ current_stock: next })
+      .eq('id', ingredientId);
+    if (updateErr) throw updateErr;
+
+    const ctx = requireStaffContext();
+    const { error: histErr } = await supabase
+      .from('stock_history')
+      .insert([{
+        ingredient_id: ingredientId,
+        change_type: changeType,
+        quantity_delta: delta,
+        previous_stock: previous,
+        new_stock: next,
+        note: note ?? null,
+        user_id: ctx.userId,
+        transaction_id: transactionId ?? null,
+      }]);
+    if (histErr) throw histErr;
+  },
+};
+
+// ─── Product Recipes ─────────────────────────────────────────
+
+type RecipeRow = DBProductRecipe;
+
+export const RecipeService = {
+  /** Get all recipe lines for a given product. */
+  async getByProduct(productId: string): Promise<RecipeRow[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('product_recipes')
+      .select('*')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** Replace the full recipe for a product (delete all + insert new). */
+  async replaceForProduct(
+    productId: string,
+    lines: { ingredient_id: string; quantity: number }[],
+  ): Promise<void> {
+    requireAdminContext();
+
+    const { error: delErr } = await supabase
+      .from('product_recipes')
+      .delete()
+      .eq('product_id', productId);
+    if (delErr) throw delErr;
+
+    if (lines.length === 0) return;
+
+    const rows = lines.map((l) => ({
+      product_id: productId,
+      ingredient_id: l.ingredient_id,
+      quantity: l.quantity,
+    }));
+
+    const { error: insErr } = await supabase
+      .from('product_recipes')
+      .insert(rows);
+    if (insErr) throw insErr;
+  },
+
+  /** Get all recipe lines (used to derive "which products use ingredient X"). */
+  async getAll(): Promise<RecipeRow[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('product_recipes')
+      .select('*');
+    if (error) throw error;
+    return data ?? [];
+  },
+};
+
+// ─── Stock History ───────────────────────────────────────────
+
+export const StockHistoryService = {
+  async getByIngredient(
+    ingredientId: string,
+    limit = 50,
+  ): Promise<DBStockHistory[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('stock_history')
+      .select('*')
+      .eq('ingredient_id', ingredientId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async getAll(limit = 100): Promise<DBStockHistory[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('stock_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  },
+};

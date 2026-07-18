@@ -2,35 +2,35 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Role } from '../types/rbac';
 import { SYSTEM_MODULES, DEFAULT_ROLE_PERMISSIONS } from '../types/rbac';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 import { useAuthStore } from './useAuthStore';
 
 const DEFAULT_ROLES: Role[] = [
   {
-    id: 'tenant_admin',
-    name: 'Tenant Admin',
-    description: 'Full workspace access and control',
+    id: 'admin',
+    name: 'Admin',
+    description: 'Full system access and control',
     isCustom: false,
     permissions: [...SYSTEM_MODULES],
   },
   {
-    id: 'manager',
-    name: 'Store Manager',
-    description: 'Manage inventory, sales, and reports',
-    isCustom: false,
-    permissions: DEFAULT_ROLE_PERMISSIONS['manager'] ?? [],
-  },
-  {
     id: 'cashier',
     name: 'Cashier',
-    description: 'Process sales and view basic history',
+    description: 'Process sales and view history',
     isCustom: false,
     permissions: DEFAULT_ROLE_PERMISSIONS['cashier'] ?? [],
+  },
+  {
+    id: 'kitchen',
+    name: 'Kitchen',
+    description: 'View and manage kitchen display orders',
+    isCustom: false,
+    permissions: DEFAULT_ROLE_PERMISSIONS['kitchen'] ?? [],
   },
 ];
 
 /** Built-in roles that can never be deleted or have their permissions removed. */
-const IMMUTABLE_ROLE_IDS = new Set(['tenant_admin', 'manager', 'cashier']);
+const IMMUTABLE_ROLE_IDS = new Set(['admin', 'cashier', 'kitchen']);
 
 interface RolesState {
   roles: Role[];
@@ -47,11 +47,9 @@ export const useRolesStore = create<RolesState>()(
       roles: DEFAULT_ROLES,
 
       addRole: (role) => {
-        // SECURITY: Only tenant_admin can create custom roles.
         const user = useAuthStore.getState().user;
-        if (!user || user.role !== 'tenant_admin') return;
+        if (!user || user.role !== 'admin') return;
 
-        // SECURITY: Prevent creating roles with the same ID as a system role.
         if (IMMUTABLE_ROLE_IDS.has(role.id)) return;
 
         set((state) => ({
@@ -60,11 +58,9 @@ export const useRolesStore = create<RolesState>()(
       },
 
       updateRole: (id, updates) => {
-        // SECURITY: Only tenant_admin can modify roles.
         const user = useAuthStore.getState().user;
-        if (!user || user.role !== 'tenant_admin') return;
+        if (!user || user.role !== 'admin') return;
 
-        // SECURITY: System roles can only have their permissions updated, not their ID or name.
         if (IMMUTABLE_ROLE_IDS.has(id)) {
           const { permissions, description } = updates;
           set((state) => ({
@@ -83,11 +79,9 @@ export const useRolesStore = create<RolesState>()(
       },
 
       deleteRole: (id) => {
-        // SECURITY: Only tenant_admin can delete roles.
         const user = useAuthStore.getState().user;
-        if (!user || user.role !== 'tenant_admin') return;
+        if (!user || user.role !== 'admin') return;
 
-        // SECURITY: Never allow deletion of system roles.
         if (IMMUTABLE_ROLE_IDS.has(id)) return;
 
         set((state) => ({
@@ -97,18 +91,6 @@ export const useRolesStore = create<RolesState>()(
 
       hasPermission: (roleId, moduleName) => {
         const normalized = roleId.toLowerCase();
-        if (normalized === 'super_admin') return true;
-
-        // SECURITY: Cashiers cannot access restricted modules even if the
-        // local store is tampered with — the server-side RLS is the real
-        // enforcement, but we add a client-side belt-and-suspenders check.
-        const user = useAuthStore.getState().user;
-        const restrictedModulesForCashier = [
-          'Accounting', 'Settings', 'Roles & Access',
-        ];
-        if (user?.role === 'cashier' && restrictedModulesForCashier.includes(moduleName)) {
-          return false;
-        }
 
         const role = get().roles.find(
           (r) =>
@@ -121,7 +103,6 @@ export const useRolesStore = create<RolesState>()(
 
       getRolePermissions: (roleId) => {
         const normalized = roleId.toLowerCase();
-        if (normalized === 'super_admin') return [...SYSTEM_MODULES];
 
         const role = get().roles.find(
           (r) =>
@@ -133,7 +114,7 @@ export const useRolesStore = create<RolesState>()(
     }),
     {
       name: 'pos-roles',
-      storage: createTenantStorage('pos-roles'),
+      storage: createAppStorage('pos-roles'),
     },
   ),
 );

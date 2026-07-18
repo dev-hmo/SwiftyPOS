@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 type BusinessType = 'retail' | 'fb' | 'service';
 
@@ -43,6 +43,6 @@ export const useSettingsStore = create<SettingsStore>()(
           return next;
         }),
     }),
-    { name: 'business-settings', storage: createTenantStorage('business-settings') }
+    { name: 'business-settings', storage: createAppStorage('business-settings') }
   )
 );

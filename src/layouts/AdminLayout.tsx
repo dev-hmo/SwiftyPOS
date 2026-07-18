@@ -41,7 +41,8 @@ import {
   Logout,
   Menu as MenuIcon,
   Timeline,
-  CreditCard
+  Kitchen,
+  Science
 } from '@mui/icons-material';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import React from 'react';
@@ -49,66 +50,59 @@ import { useEnterpriseStore } from '../store/useEnterpriseStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRolesStore } from '../store/useRolesStore';
-import { useTenantStore } from '../store/useTenantStore';
 import { motion } from 'framer-motion';
-import TenantSwitcher from '../components/common/TenantSwitcher';
 
 const drawerWidth = 260;
 
-// Centralized Dynamic RBAC Config
 const NAVIGATION_CONFIG = [
   { 
     title: 'Overview', 
     path: '/admin', 
     icon: <DashboardIcon />, 
-    roles: ['tenant_admin', 'manager', 'cashier'] 
+    roles: ['admin'] 
   },
   { 
     title: 'Sales & History', 
     path: '/admin/sales', 
     icon: <Receipt />, 
-    roles: ['tenant_admin', 'manager', 'cashier'] 
+    roles: ['admin'] 
   },
   { 
     title: 'Inventory', 
     icon: <InventoryIcon />, 
-    roles: ['tenant_admin', 'manager'],
+    roles: ['admin'],
     children: [
-      { title: 'All Products', path: '/admin/inventory', icon: <ViewList />, roles: ['tenant_admin', 'manager'] },
-      { title: 'Categories', path: '/admin/inventory/categories', icon: <Category />, roles: ['tenant_admin', 'manager'] },
+      { title: 'Products Registry', path: '/admin/inventory', icon: <ViewList />, roles: ['admin'] },
+      { title: 'Raw Ingredients', path: '/admin/inventory/ingredients', icon: <Kitchen />, roles: ['admin'] },
+      { title: 'Recipe Configurator', path: '/admin/inventory/recipes', icon: <Science />, roles: ['admin'] },
+      { title: 'Categories', path: '/admin/inventory/categories', icon: <Category />, roles: ['admin'] },
     ]
   },
   { 
     title: 'Reports Hub', 
     path: '/admin/reports', 
     icon: <AnalyticsIcon />, 
-    roles: ['tenant_admin', 'manager'] 
+    roles: ['admin'] 
   },
   { 
     title: 'Accounting', 
     path: '/admin/accounting', 
     icon: <AccountingIcon />, 
-    roles: ['tenant_admin']
+    roles: ['admin']
   },
   { 
     title: 'Activity Log', 
     path: '/admin/activity', 
     icon: <Timeline />, 
-    roles: ['tenant_admin', 'manager'] 
-  },
-  { 
-    title: 'Billing & Plan', 
-    path: '/admin/billing', 
-    icon: <CreditCard />, 
-    roles: ['tenant_admin']
+    roles: ['admin'] 
   },
   { 
     title: 'Settings', 
     icon: <SettingsIcon />, 
-    roles: ['tenant_admin'],
+    roles: ['admin'],
     children: [
-      { title: 'Global Settings', path: '/admin/settings', icon: <SettingsIcon />, roles: ['tenant_admin'] },
-      { title: 'Roles & Access', path: '/admin/settings/roles', icon: <Security />, roles: ['tenant_admin'] }
+      { title: 'Global Settings', path: '/admin/settings', icon: <SettingsIcon />, roles: ['admin'] },
+      { title: 'Roles & Access', path: '/admin/settings/roles', icon: <Security />, roles: ['admin'] }
     ]
   },
 ];
@@ -121,12 +115,7 @@ export default function AdminLayout() {
   const { mode, toggleTheme } = useThemeStore();
   const { user, role, logout } = useAuthStore();
   const { hasPermission } = useRolesStore();
-  const { tenantStores, activeTenant, loadMemberships } = useTenantStore();
 
-  React.useEffect(() => {
-    loadMemberships();
-  }, [loadMemberships]);
-  
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [openMenus, setOpenMenus] = React.useState<Record<string, boolean>>({
@@ -143,10 +132,6 @@ export default function AdminLayout() {
   const toggleMenu = (title: string) => {
     setOpenMenus(prev => ({ ...prev, [title]: !prev[title] }));
   };
-
-  const displayStores = tenantStores.length > 0 
-    ? tenantStores.map(s => ({ id: s.id, name: s.name }))
-    : [{ id: 'default', name: activeTenant?.name ?? 'Default Store' }];
 
   const handleLogout = async () => {
     await logout();
@@ -194,7 +179,6 @@ export default function AdminLayout() {
               </Box>
               Swifty <span style={{ color: theme.palette.text.secondary, fontWeight: 300, display: isMobile ? 'none' : 'inline' }}>POS</span>
             </Typography>
-            <TenantSwitcher />
             <Box sx={{ flex: 1, maxWidth: { xs: 140, sm: 320 } }}>
             <FormControl fullWidth size="small">
               <Select
@@ -209,9 +193,7 @@ export default function AdminLayout() {
                   color: 'primary.main'
                 }}
               >
-                {displayStores.map(store => (
-                  <MenuItem key={store.id} value={store.id} sx={{ py: 1.2, px: 2, borderRadius: 2, mx: 1 }}>{store.name}</MenuItem>
-                ))}
+                <MenuItem value="default" sx={{ py: 1.2, px: 2, borderRadius: 2, mx: 1 }}>Default Store</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -234,7 +216,6 @@ export default function AdminLayout() {
         </Toolbar>
       </AppBar>
       
-      {/* Responsive Drawer Logic */}
       <Drawer
         variant={isMobile ? "temporary" : "permanent"}
         open={isMobile ? mobileOpen : true}
@@ -256,7 +237,6 @@ export default function AdminLayout() {
       >
         <Toolbar sx={{ minHeight: { xs: 70, md: 80 } }} />
         
-        {/* Sidebar Middle - Navigation */}
         <Box sx={{ flex: 1, overflowY: 'auto', mt: 4, px: 2 }}>
           <List sx={{ gap: 0.5, display: 'flex', flexDirection: 'column' }}>
             {NAVIGATION_CONFIG.filter(item => {
@@ -341,7 +321,6 @@ export default function AdminLayout() {
           </List>
         </Box>
 
-        {/* Sidebar Bottom - User Profile Hub */}
         <Box sx={{ p: 2.5, borderTop: `1px solid ${alpha(theme.palette.divider, 0.05)}`, bgcolor: alpha(theme.palette.action.hover, 0.02) }}>
            <Paper 
             elevation={0}

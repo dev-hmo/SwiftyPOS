@@ -7,7 +7,6 @@ import {
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { useSalesStore } from '../../store/useSalesStore';
 import { useTheme, alpha } from '@mui/material/styles';
-import PremiumFeatureGate from '../../components/PremiumFeatureGate';
 
 const REVENUE_DATA = [
   { name: 'Mon', revenue: 4000, profit: 2400 },
@@ -34,7 +33,6 @@ export default function ReportsPage() {
   const { products, ingredients } = useInventoryStore();
   const { sales } = useSalesStore();
 
-  // --- DERIVE INVENTORY METRICS ---
   const inventoryCategoryData = products.reduce<{ name: string; items: number; value: number }[]>((acc, product) => {
     if (!product.category) return acc;
     const existing = acc.find(c => c.name === product.category);
@@ -51,7 +49,6 @@ export default function ReportsPage() {
   const totalIngredientValue = ingredients.reduce((sum, ing) => sum + (ing.cost_per_unit * ing.stock_quantity), 0);
   const totalRetailValue = products.reduce((sum, p) => sum + (p.price * (p.stock_quantity || 0)), 0);
 
-  // --- DERIVE STAFF METRICS ---
   const staffSalesData = sales.reduce<{ name: string; transactions: number; revenue: number }[]>((acc, sale) => {
     const cashier = sale.cashier || 'System';
     const existing = acc.find(s => s.name === cashier);
@@ -77,7 +74,6 @@ export default function ReportsPage() {
         </Tabs>
       </Box>
 
-      {/* SALES PERFORMANCE TAB */}
       {activeTab === 0 && (
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 8 }}>
@@ -120,72 +116,65 @@ export default function ReportsPage() {
         </Grid>
       )}
 
-      {/* INVENTORY VALUATION TAB */}
       {activeTab === 1 && (
-        <PremiumFeatureGate feature="advanced_reports" featureName="Inventory Valuation" requiredTier="pro">
-          <Grid container spacing={4}>
-            <Grid size={{ xs: 12, md: 7 }}>
-              <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 450 }}>
-                <Typography variant="h6" fontWeight={800} mb={3}>Capital Distribution by Category</Typography>
-                <ResponsiveContainer width="100%" height="85%">
-                  <BarChart data={inventoryCategoryData.length > 0 ? inventoryCategoryData : [{name: 'No Data', items: 0, value: 0}]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} />
-                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="value" name="Total Retail Value" fill={theme.palette.primary.main} radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 450, display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" fontWeight={800} mb={3}>Asset Liquidity Snapshot</Typography>
-                
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
-                  <Box sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.secondary.main, 0.05), border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}` }}>
-                    <Typography variant="overline" color="text.secondary" fontWeight={800}>Tied Capital (Raw Ingredients)</Typography>
-                    <Typography variant="h3" fontWeight={900} color="secondary.main">${totalIngredientValue.toFixed(2)}</Typography>
-                  </Box>
-                  
-                  <Box sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.success.main, 0.05), border: `1px solid ${alpha(theme.palette.success.main, 0.1)}` }}>
-                    <Typography variant="overline" color="text.secondary" fontWeight={800}>Projected Retail Value (Finished Goods)</Typography>
-                    <Typography variant="h3" fontWeight={900} color="success.main">${totalRetailValue.toFixed(2)}</Typography>
-                  </Box>
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12, md: 7 }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 450 }}>
+              <Typography variant="h6" fontWeight={800} mb={3}>Capital Distribution by Category</Typography>
+              <ResponsiveContainer width="100%" height="85%">
+                <BarChart data={inventoryCategoryData.length > 0 ? inventoryCategoryData : [{name: 'No Data', items: 0, value: 0}]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} />
+                  <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="value" name="Total Retail Value" fill={theme.palette.primary.main} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 450, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="h6" fontWeight={800} mb={3}>Asset Liquidity Snapshot</Typography>
+              
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
+                <Box sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.secondary.main, 0.05), border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}` }}>
+                  <Typography variant="overline" color="text.secondary" fontWeight={800}>Tied Capital (Raw Ingredients)</Typography>
+                  <Typography variant="h3" fontWeight={900} color="secondary.main">${totalIngredientValue.toFixed(2)}</Typography>
                 </Box>
-              </Paper>
-            </Grid>
-          </Grid>
-        </PremiumFeatureGate>
-      )}
-
-      {/* STAFF ACTIVITY TAB */}
-      {activeTab === 2 && (
-        <PremiumFeatureGate feature="advanced_reports" featureName="Staff Activity Matrix" requiredTier="pro">
-          <Grid container spacing={4}>
-            <Grid size={{ xs: 12 }}>
-              <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 500 }}>
-                <Typography variant="h6" fontWeight={800} mb={1}>Cashier Performance Matrix</Typography>
-                <Typography color="text.secondary" mb={4}>Correlating transaction volume against total revenue generated per staff member.</Typography>
                 
-                <ResponsiveContainer width="100%" height="75%">
-                  <ComposedChart data={staffSalesData.length > 0 ? staffSalesData : [{name: 'No Sales Yet', revenue: 0, transactions: 0}]} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <CartesianGrid stroke="#f5f5f5" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} scale="band" />
-                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
-                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="revenue" name="Gross Revenue" barSize={40} fill={theme.palette.primary.light} radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="right" type="monotone" dataKey="transactions" name="Tx Count" stroke={theme.palette.secondary.main} strokeWidth={4} dot={{ r: 6 }} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Grid>
+                <Box sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.success.main, 0.05), border: `1px solid ${alpha(theme.palette.success.main, 0.1)}` }}>
+                  <Typography variant="overline" color="text.secondary" fontWeight={800}>Projected Retail Value (Finished Goods)</Typography>
+                  <Typography variant="h3" fontWeight={900} color="success.main">${totalRetailValue.toFixed(2)}</Typography>
+                </Box>
+              </Box>
+            </Paper>
           </Grid>
-        </PremiumFeatureGate>
+        </Grid>
       )}
 
+      {activeTab === 2 && (
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12 }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: 500 }}>
+              <Typography variant="h6" fontWeight={800} mb={1}>Cashier Performance Matrix</Typography>
+              <Typography color="text.secondary" mb={4}>Correlating transaction volume against total revenue generated per staff member.</Typography>
+              
+              <ResponsiveContainer width="100%" height="75%">
+                <ComposedChart data={staffSalesData.length > 0 ? staffSalesData : [{name: 'No Sales Yet', revenue: 0, transactions: 0}]} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <CartesianGrid stroke="#f5f5f5" vertical={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} scale="band" />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="revenue" name="Gross Revenue" barSize={40} fill={theme.palette.primary.light} radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="right" type="monotone" dataKey="transactions" name="Tx Count" stroke={theme.palette.secondary.main} strokeWidth={4} dot={{ r: 6 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
+        </Grid>
+      )}
     </Box>
   );
 }

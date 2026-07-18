@@ -1,8 +1,7 @@
--- Migration: Tenant Isolation
+-- Migration: Tenant Isolation (idempotent)
 -- Adds multi-tenant data model: tenants, user_tenants, super_admins tables.
 -- Adds tenant_id to all business tables.
 -- Implements strict RLS policies with tenant scoping.
--- Compatible with PostgreSQL 15+ (uses WITH CHECK for FOR ALL policies).
 
 -- ============================================================
 -- 1. NEW TABLES
@@ -80,7 +79,6 @@ RETURNS TEXT AS $$
   LIMIT 1
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- SECURITY DEFINER function for tenant signup (replaces permissive INSERT policies)
 CREATE OR REPLACE FUNCTION create_tenant_for_signup(p_name TEXT, p_slug TEXT)
 RETURNS UUID AS $$
 DECLARE
@@ -98,13 +96,16 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- 4. RLS POLICIES (drop old permissive ones, add strict tenant-scoped ones)
+-- 4. RLS POLICIES
 -- ============================================================
 
 -- --- Products ---
 DROP POLICY IF EXISTS "Admins have full access" ON products;
 DROP POLICY IF EXISTS "Managers can view and update products" ON products;
 DROP POLICY IF EXISTS "Cashiers can view products" ON products;
+DROP POLICY IF EXISTS "Super admins full access on products" ON products;
+DROP POLICY IF EXISTS "Tenant members view products" ON products;
+DROP POLICY IF EXISTS "Tenant admins and managers manage products" ON products;
 
 CREATE POLICY "Super admins full access on products"
   ON products FOR ALL
@@ -120,6 +121,11 @@ CREATE POLICY "Tenant admins and managers manage products"
   WITH CHECK (tenant_id = get_user_tenant_id() AND get_user_tenant_role() IN ('tenant_admin', 'manager'));
 
 -- --- Stores ---
+DROP POLICY IF EXISTS "Admins full access" ON stores;
+DROP POLICY IF EXISTS "Super admins full access on stores" ON stores;
+DROP POLICY IF EXISTS "Tenant members view stores" ON stores;
+DROP POLICY IF EXISTS "Tenant admins and managers manage stores" ON stores;
+
 CREATE POLICY "Super admins full access on stores"
   ON stores FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -135,6 +141,11 @@ CREATE POLICY "Tenant admins and managers manage stores"
 
 -- --- Sales Transactions ---
 DROP POLICY IF EXISTS "Cashiers can create sales" ON sales_transactions;
+DROP POLICY IF EXISTS "Cashiers can create sales" ON sales_transactions;
+DROP POLICY IF EXISTS "Super admins full access on sales" ON sales_transactions;
+DROP POLICY IF EXISTS "Tenant members view sales" ON sales_transactions;
+DROP POLICY IF EXISTS "Tenant admins and managers manage sales" ON sales_transactions;
+DROP POLICY IF EXISTS "Cashiers can insert sales" ON sales_transactions;
 
 CREATE POLICY "Super admins full access on sales"
   ON sales_transactions FOR ALL
@@ -154,6 +165,10 @@ CREATE POLICY "Cashiers can insert sales"
   WITH CHECK (tenant_id = get_user_tenant_id() AND get_user_tenant_role() = 'cashier');
 
 -- --- Sales Items ---
+DROP POLICY IF EXISTS "Super admins full access on sales_items" ON sales_items;
+DROP POLICY IF EXISTS "Tenant members view sales_items" ON sales_items;
+DROP POLICY IF EXISTS "Tenant members insert sales_items" ON sales_items;
+
 CREATE POLICY "Super admins full access on sales_items"
   ON sales_items FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -167,6 +182,10 @@ CREATE POLICY "Tenant members insert sales_items"
   WITH CHECK (tenant_id = get_user_tenant_id());
 
 -- --- Inventory Movements ---
+DROP POLICY IF EXISTS "Super admins full access on inventory_movements" ON inventory_movements;
+DROP POLICY IF EXISTS "Tenant members view inventory_movements" ON inventory_movements;
+DROP POLICY IF EXISTS "Tenant admins and managers manage inventory_movements" ON inventory_movements;
+
 CREATE POLICY "Super admins full access on inventory_movements"
   ON inventory_movements FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -183,6 +202,9 @@ CREATE POLICY "Tenant admins and managers manage inventory_movements"
 -- --- Product Stocks ---
 DROP POLICY IF EXISTS "Admin full access stocks" ON product_stocks;
 DROP POLICY IF EXISTS "Managers can view all stocks" ON product_stocks;
+DROP POLICY IF EXISTS "Super admins full access on product_stocks" ON product_stocks;
+DROP POLICY IF EXISTS "Tenant members view product_stocks" ON product_stocks;
+DROP POLICY IF EXISTS "Tenant admins and managers manage product_stocks" ON product_stocks;
 
 CREATE POLICY "Super admins full access on product_stocks"
   ON product_stocks FOR ALL
@@ -198,6 +220,10 @@ CREATE POLICY "Tenant admins and managers manage product_stocks"
   WITH CHECK (tenant_id = get_user_tenant_id() AND get_user_tenant_role() IN ('tenant_admin', 'manager'));
 
 -- --- Customers ---
+DROP POLICY IF EXISTS "Super admins full access on customers" ON customers;
+DROP POLICY IF EXISTS "Tenant members view customers" ON customers;
+DROP POLICY IF EXISTS "Tenant admins and managers manage customers" ON customers;
+
 CREATE POLICY "Super admins full access on customers"
   ON customers FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -214,6 +240,9 @@ CREATE POLICY "Tenant admins and managers manage customers"
 -- --- Product Categories ---
 DROP POLICY IF EXISTS "Enable read for authenticated users on categories" ON product_categories;
 DROP POLICY IF EXISTS "Enable write for admins on categories" ON product_categories;
+DROP POLICY IF EXISTS "Super admins full access on product_categories" ON product_categories;
+DROP POLICY IF EXISTS "Tenant members view product_categories" ON product_categories;
+DROP POLICY IF EXISTS "Tenant admins and managers manage product_categories" ON product_categories;
 
 CREATE POLICY "Super admins full access on product_categories"
   ON product_categories FOR ALL
@@ -231,6 +260,9 @@ CREATE POLICY "Tenant admins and managers manage product_categories"
 -- --- Product Variants ---
 DROP POLICY IF EXISTS "Enable read for authenticated users on variants" ON product_variants;
 DROP POLICY IF EXISTS "Enable write for admins on variants" ON product_variants;
+DROP POLICY IF EXISTS "Super admins full access on product_variants" ON product_variants;
+DROP POLICY IF EXISTS "Tenant members view product_variants" ON product_variants;
+DROP POLICY IF EXISTS "Tenant admins and managers manage product_variants" ON product_variants;
 
 CREATE POLICY "Super admins full access on product_variants"
   ON product_variants FOR ALL
@@ -246,6 +278,11 @@ CREATE POLICY "Tenant admins and managers manage product_variants"
   WITH CHECK (tenant_id = get_user_tenant_id() AND get_user_tenant_role() IN ('tenant_admin', 'manager'));
 
 -- --- Promotions ---
+DROP POLICY IF EXISTS "Everyone can view promotions" ON promotions;
+DROP POLICY IF EXISTS "Super admins full access on promotions" ON promotions;
+DROP POLICY IF EXISTS "Tenant members view active promotions" ON promotions;
+DROP POLICY IF EXISTS "Tenant admins manage promotions" ON promotions;
+
 CREATE POLICY "Super admins full access on promotions"
   ON promotions FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -262,6 +299,9 @@ CREATE POLICY "Tenant admins manage promotions"
 -- --- Business Settings ---
 DROP POLICY IF EXISTS "Enable read access for authenticated users on settings" ON business_settings;
 DROP POLICY IF EXISTS "Enable all access for admins on settings" ON business_settings;
+DROP POLICY IF EXISTS "Super admins full access on business_settings" ON business_settings;
+DROP POLICY IF EXISTS "Tenant members view business_settings" ON business_settings;
+DROP POLICY IF EXISTS "Tenant admins manage business_settings" ON business_settings;
 
 CREATE POLICY "Super admins full access on business_settings"
   ON business_settings FOR ALL
@@ -279,6 +319,9 @@ CREATE POLICY "Tenant admins manage business_settings"
 -- --- Account Transactions ---
 DROP POLICY IF EXISTS "Enable read access for authenticated users in same store on transactions" ON account_transactions;
 DROP POLICY IF EXISTS "Enable insert for authenticated users on transactions" ON account_transactions;
+DROP POLICY IF EXISTS "Super admins full access on account_transactions" ON account_transactions;
+DROP POLICY IF EXISTS "Tenant members view account_transactions" ON account_transactions;
+DROP POLICY IF EXISTS "Tenant admins and managers manage account_transactions" ON account_transactions;
 
 CREATE POLICY "Super admins full access on account_transactions"
   ON account_transactions FOR ALL
@@ -296,6 +339,10 @@ CREATE POLICY "Tenant admins and managers manage account_transactions"
 -- --- Suppliers ---
 ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins full access on suppliers" ON suppliers;
+DROP POLICY IF EXISTS "Tenant members view suppliers" ON suppliers;
+DROP POLICY IF EXISTS "Tenant admins and managers manage suppliers" ON suppliers;
+
 CREATE POLICY "Super admins full access on suppliers"
   ON suppliers FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -312,6 +359,10 @@ CREATE POLICY "Tenant admins and managers manage suppliers"
 -- --- Audit Logs ---
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins full access on audit_logs" ON audit_logs;
+DROP POLICY IF EXISTS "Tenant admins view audit_logs" ON audit_logs;
+DROP POLICY IF EXISTS "Tenant members insert audit_logs" ON audit_logs;
+
 CREATE POLICY "Super admins full access on audit_logs"
   ON audit_logs FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -327,6 +378,9 @@ CREATE POLICY "Tenant members insert audit_logs"
 -- --- Tenants ---
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins full access on tenants" ON tenants;
+DROP POLICY IF EXISTS "Tenant admins view own tenant" ON tenants;
+
 CREATE POLICY "Super admins full access on tenants"
   ON tenants FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());
@@ -334,10 +388,12 @@ CREATE POLICY "Super admins full access on tenants"
 CREATE POLICY "Tenant admins view own tenant"
   ON tenants FOR SELECT
   USING (id = get_user_tenant_id());
--- No INSERT policy — signup uses create_tenant_for_signup() SECURITY DEFINER function
 
 -- --- User Tenants ---
 ALTER TABLE user_tenants ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Super admins full access on user_tenants" ON user_tenants;
+DROP POLICY IF EXISTS "Users can view their own memberships" ON user_tenants;
 
 CREATE POLICY "Super admins full access on user_tenants"
   ON user_tenants FOR ALL
@@ -346,16 +402,17 @@ CREATE POLICY "Super admins full access on user_tenants"
 CREATE POLICY "Users can view their own memberships"
   ON user_tenants FOR SELECT
   USING (user_id = auth.uid());
--- No INSERT policy — signup uses create_tenant_for_signup() SECURITY DEFINER function
 
 -- --- Super Admins ---
 ALTER TABLE super_admins ENABLE ROW LEVEL SECURITY;
--- SECURITY DEFINER function for super admin check (avoids UUID leaks)
+
 CREATE OR REPLACE FUNCTION current_user_is_super_admin()
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (SELECT 1 FROM super_admins WHERE user_id = auth.uid())
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
--- No SELECT policy — only super admins and the function can access this table
+
+DROP POLICY IF EXISTS "Super admins manage super_admins" ON super_admins;
+
 CREATE POLICY "Super admins manage super_admins"
   ON super_admins FOR ALL
   USING (is_super_admin()) WITH CHECK (is_super_admin());

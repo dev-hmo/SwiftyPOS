@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useNotificationStore } from './useNotificationStore';
-import { createTenantStorage } from '../utils/storage';
+import { createAppStorage } from '../utils/storage';
 
 export interface Ingredient {
   id: string;
@@ -213,7 +213,7 @@ export const useInventoryStore = create<InventoryState>()(
     }),
     {
       name: 'inventory',
-      storage: createTenantStorage('inventory'),
+      storage: createAppStorage('inventory'),
     }
   )
 );

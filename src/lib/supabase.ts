@@ -7,14 +7,20 @@ const hasCredentials = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!hasCredentials) {
   console.warn(
-    '[SwiftyPOS] Supabase credentials are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file. Running in offline/demo mode.',
+    '[SwiftyPOS] Supabase credentials are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.',
   );
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
-);
+const clientUrl = supabaseUrl || 'https://placeholder.supabase.co';
+const clientKey = supabaseAnonKey || 'placeholder-key';
+
+if (!hasCredentials) {
+  console.warn(
+    '[SwiftyPOS] Running with placeholder credentials. All database operations will fail.',
+  );
+}
+
+export const supabase = createClient(clientUrl, clientKey);
 
 export { hasCredentials };
 

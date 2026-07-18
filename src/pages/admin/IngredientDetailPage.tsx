@@ -41,13 +41,13 @@ export default function IngredientDetailPage() {
     } else {
       updateIngredient(id!, ingredientData);
     }
-    navigate('/admin/inventory');
+    navigate('/admin/inventory/ingredients');
   };
 
   const handleDelete = () => {
     if (!isNew) {
       deleteIngredient(id!);
-      navigate('/admin/inventory');
+      navigate('/admin/inventory/ingredients');
     }
   };
 

@@ -10,7 +10,7 @@ import { useActivityStore } from '../store/useActivityStore';
 export default function POSLayout() {
   const [isLocked, setIsLocked] = React.useState(false);
   const { mode, toggleTheme } = useThemeStore();
-  const { user, logout } = useAuthStore();
+  const { user, role, logout } = useAuthStore();
   const { logActivity } = useActivityStore();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -52,22 +52,24 @@ export default function POSLayout() {
             </Box>
             
             <Box sx={{ ml: { xs: 1, md: 3 }, display: 'flex', gap: 1 }}>
-              <Link to="/admin" style={{ textDecoration: 'none' }}>
-                <Button 
-                variant="outlined" 
-                size="small"
-                sx={{ 
-                  borderRadius: 3, px: { xs: 1.5, md: 2 }, fontWeight: 700, 
-                  borderColor: alpha(theme.palette.primary.main, 0.2),
-                  color: 'primary.main',
-                  fontSize: '0.75rem',
-                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05), borderColor: 'primary.main' }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>ADMIN PANEL</Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>ADMIN</Box>
-              </Button>
-            </Link>
+              {role === 'admin' && (
+                <Link to="/admin" style={{ textDecoration: 'none' }}>
+                  <Button 
+                  variant="outlined" 
+                  size="small"
+                  sx={{ 
+                    borderRadius: 3, px: { xs: 1.5, md: 2 }, fontWeight: 700, 
+                    borderColor: alpha(theme.palette.primary.main, 0.2),
+                    color: 'primary.main',
+                    fontSize: '0.75rem',
+                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05), borderColor: 'primary.main' }
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>ADMIN PANEL</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>ADMIN</Box>
+                </Button>
+              </Link>
+              )}
               <Link to="/kds" style={{ textDecoration: 'none' }}>
                 <Button 
                 variant="outlined" 
@@ -83,8 +85,8 @@ export default function POSLayout() {
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>KITCHEN</Box>
                 <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>KDS</Box>
               </Button>
-            </Link>
-          </Box>
+              </Link>
+            </Box>
         </Box>
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

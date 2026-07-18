@@ -11,7 +11,6 @@ export interface DBProduct {
   image_url: string | null;
   category_id: string | null;
   custom_attributes: Record<string, unknown>;
-  tenant_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +24,6 @@ export interface DBSaleTransaction {
   discount_amount: number;
   payment_method: string;
   receipt_number: string;
-  tenant_id: string;
   created_at: string;
 }
 
@@ -36,7 +34,6 @@ export interface DBSaleItem {
   quantity: number;
   unit_price: number;
   total_price: number;
-  tenant_id: string;
   created_at: string;
 }
 
@@ -46,7 +43,6 @@ export interface DBCustomer {
   email: string | null;
   phone: string | null;
   loyalty_points: number;
-  tenant_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +52,6 @@ export interface DBStore {
   name: string;
   location: string | null;
   is_active: boolean;
-  tenant_id: string;
   created_at: string;
 }
 
@@ -68,7 +63,6 @@ export interface DBInventoryMovement {
   type: 'inbound' | 'outbound' | 'adjustment' | 'sale' | 'return';
   reason: string | null;
   user_id: string | null;
-  tenant_id: string;
   created_at: string;
 }
 
@@ -81,7 +75,6 @@ export interface DBBusinessSettings {
   tax_rate: number;
   receipt_header: string | null;
   receipt_footer: string | null;
-  tenant_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -93,7 +86,6 @@ export interface DBAuditLog {
   entity_type: string;
   entity_id: string | null;
   metadata: Record<string, unknown> | null;
-  tenant_id: string | null;
   created_at: string;
 }
 
@@ -105,7 +97,6 @@ export interface DBAccountTransaction {
   amount: number;
   description: string | null;
   reference_id: string | null;
-  tenant_id: string;
   created_at: string;
   created_by: string | null;
 }
@@ -169,7 +160,6 @@ export interface SaleRecord {
   customer: string | null;
   status: 'Completed' | 'Refunded' | 'Voided';
   createdAt: string;
-  tenantId?: string;
 }
 
 export interface KDSItem {
@@ -242,4 +232,39 @@ export interface Notification {
   message: string;
   severity: NotificationSeverity;
   timestamp: number;
+}
+
+// ─── Inventory: Ingredients / Recipes / Stock ─────────────────
+
+export interface DBIngredient {
+  id: string;
+  name: string;
+  sku: string;
+  unit: string;
+  current_stock: number;
+  cost_per_unit: number;
+  min_stock_alert: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DBProductRecipe {
+  id: string;
+  product_id: string;
+  ingredient_id: string;
+  quantity: number;
+  created_at: string;
+}
+
+export interface DBStockHistory {
+  id: string;
+  ingredient_id: string;
+  change_type: 'purchase' | 'sale' | 'adjustment' | 'waste' | 'opening';
+  quantity_delta: number;
+  previous_stock: number;
+  new_stock: number;
+  note: string | null;
+  user_id: string | null;
+  transaction_id: string | null;
+  created_at: string;
 }
