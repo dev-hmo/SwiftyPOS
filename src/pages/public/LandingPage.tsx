@@ -3,53 +3,65 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Terminal, BarChart3, ChefHat, ShieldCheck, 
-  ArrowRight, Store, Zap, Layers 
+  ArrowRight, Store, Zap, Layers, Palette, PackageSearch
 } from 'lucide-react';
 import { useTheme, alpha } from '@mui/material/styles';
 
 const FEATURES = [
   {
     title: 'Lightning Fast POS',
-    description: 'Intercept physical barcode scans globally. 100ms multi-item checkout flows.',
+    description: 'Intercept barcode scans and process multi-item checkout flows in under 100ms. Hold and recall orders on the fly.',
     icon: Zap,
     color: '#f59e0b'
   },
   {
-    title: 'Kitchen Display System',
-    description: 'Keep your line cooks in sync with SLA-bound color-coded digital tickets.',
-    icon: ChefHat,
-    color: '#ef4444'
-  },
-  {
-    title: 'Recipe & Ingredient Engine',
-    description: 'Bill of Materials tracking. Sell an espresso, automatically deduct 18g of beans.',
+    title: 'Product Variants',
+    description: 'Offer Size, Sugar Level, and custom option groups with automatic price modifiers — all configurable per product.',
     icon: Layers,
-    color: '#10b981'
-  },
-  {
-    title: 'Enterprise Analytics',
-    description: 'Data-driven insights into inventory valuations, gross margins, and cashier performance.',
-    icon: BarChart3,
-    color: '#6366f1'
-  },
-  {
-    title: 'RBAC Security',
-    description: 'Granular permissions isolating your cashiers from your store managers and accountants.',
-    icon: ShieldCheck,
     color: '#8b5cf6'
   },
   {
-    title: 'Hardware Agnostic',
-    description: 'Runs flawlessly on iPads, standard desktop web browsers, and touch-screen kiosks.',
+    title: 'Recipe & Ingredient Engine',
+    description: 'Define Bill of Materials per product. Sell an espresso and auto-deduct 18g of beans from stock in real time.',
+    icon: ChefHat,
+    color: '#10b981'
+  },
+  {
+    title: 'Smart Stock Tracking',
+    description: 'Low-stock alerts, ingredient cost tracking, and full stock history with manual adjustment and audit trail.',
+    icon: PackageSearch,
+    color: '#ef4444'
+  },
+  {
+    title: 'Kitchen Display System',
+    description: 'Keep your line cooks in sync with SLA-bound color-coded digital tickets and real-time order status updates.',
     icon: Terminal,
     color: '#3b82f6'
+  },
+  {
+    title: 'RBAC Security',
+    description: 'Granular permissions isolating cashiers, kitchen staff, and administrators. Built-in role templates with custom access.',
+    icon: ShieldCheck,
+    color: '#6366f1'
+  },
+  {
+    title: 'Store Branding',
+    description: 'Upload your store logo, customize receipt footers, and configure tax rates — all from a single settings page.',
+    icon: Palette,
+    color: '#ec4899'
+  },
+  {
+    title: 'Enterprise Analytics',
+    description: 'Data-driven insights into inventory valuations, gross margins, cashier performance, and daily sales reports.',
+    icon: BarChart3,
+    color: '#14b8a6'
   }
 ];
 
 const PRICING = [
-  { name: 'Standard', price: '9,000 Ks', desc: 'Perfect for single-location cafes.', feat: ['1 Register', 'Basic Analytics', 'Standard Support'], trial: true },
-  { name: 'Pro', price: '29,000 Ks', desc: 'For growing multi-location restaurants.', feat: ['Unlimited Registers', 'KDS Screen', 'Recipe Inventory (BOM)', 'Priority Support'], popular: true, trial: true },
-  { name: 'Enterprise', price: '79,000 Ks', desc: 'High-volume institutional setups.', feat: ['Custom RBAC', 'Multi-Store Management', '24/7 Priority Support', 'Dedicated Account Manager'], trial: false }
+  { name: 'Standard', price: '9,000 Ks', desc: 'Perfect for single-location cafes.', feat: ['1 Register', 'Product & Variant Management', 'Basic Analytics', 'Standard Support'], trial: true },
+  { name: 'Pro', price: '29,000 Ks', desc: 'For growing multi-location restaurants.', feat: ['Unlimited Registers', 'KDS Screen', 'Recipe & Ingredient Inventory', 'Stock Tracking & Alerts', 'Priority Support'], popular: true, trial: true },
+  { name: 'Enterprise', price: '79,000 Ks', desc: 'High-volume institutional setups.', feat: ['Custom RBAC Roles', 'Multi-Store Management', 'Full Audit Trail', '24/7 Priority Support'], trial: false }
 ];
 
 const LOCAL_PAYMENTS = [
@@ -105,7 +117,7 @@ export default function LandingPage() {
             </span>
           </Typography>
           <Typography variant="h5" sx={{ color: '#64748b', mb: 6, maxWidth: 700, mx: 'auto', fontWeight: 400, lineHeight: 1.5 }}>
-            Enterprise-grade point of sale, kitchen display systems, and automated inventory logistics wrapped in a stunningly simple interface.
+            Point of sale, kitchen display, product variants, recipe-based inventory, and automated stock tracking — all in one stunningly simple interface.
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
             <Button variant="contained" size="large" onClick={() => navigate('/login')} sx={{ py: 2, px: 5, borderRadius: 4, fontSize: '1.1rem', fontWeight: 800, boxShadow: `0 20px 40px -10px ${alpha(theme.palette.primary.main, 0.5)}` }}>
@@ -122,18 +134,18 @@ export default function LandingPage() {
       <Box sx={{ bgcolor: 'white', py: 16, borderTop: '1px solid #f1f5f9' }}>
         <Container maxWidth="lg">
           <Typography variant="h3" textAlign="center" fontWeight={900} mb={2} color="#0f172a">Everything you need to scale</Typography>
-          <Typography variant="h6" textAlign="center" color="text.secondary" mb={10} fontWeight={400}>Ditch the legacy hardware. Run your entire store from the cloud.</Typography>
+          <Typography variant="h6" textAlign="center" color="text.secondary" mb={10} fontWeight={400}>From checkout to kitchen to inventory — run your entire store from the cloud.</Typography>
           
           <Grid container spacing={4}>
             {FEATURES.map((feat, i) => (
-              <Grid size={{ xs: 12, md: 4 }} key={i}>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={i}>
                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                  <Paper elevation={0} sx={{ p: 5, borderRadius: 5, height: '100%', bgcolor: '#f8fafc', border: '1px solid #f1f5f9', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', borderColor: feat.color, boxShadow: `0 12px 24px -8px ${alpha(feat.color, 0.2)}` } }}>
-                    <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: alpha(feat.color, 0.1), color: feat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
-                      <feat.icon size={28} />
+                  <Paper elevation={0} sx={{ p: 4, borderRadius: 5, height: '100%', bgcolor: '#f8fafc', border: '1px solid #f1f5f9', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', borderColor: feat.color, boxShadow: `0 12px 24px -8px ${alpha(feat.color, 0.2)}` } }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: alpha(feat.color, 0.1), color: feat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2.5 }}>
+                      <feat.icon size={24} />
                     </Box>
-                    <Typography variant="h6" fontWeight={800} mb={1} color="#0f172a">{feat.title}</Typography>
-                    <Typography color="#64748b" lineHeight={1.6}>{feat.description}</Typography>
+                    <Typography variant="subtitle1" fontWeight={800} mb={1} color="#0f172a">{feat.title}</Typography>
+                    <Typography variant="body2" color="#64748b" lineHeight={1.6}>{feat.description}</Typography>
                   </Paper>
                 </motion.div>
               </Grid>
