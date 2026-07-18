@@ -189,7 +189,7 @@ export default function LandingPage() {
                       </Box>
 
                       <Button fullWidth variant={plan.popular ? 'contained' : 'outlined'} size="large" onClick={() => navigate('/login')} sx={{ py: 1.5, borderRadius: 3, fontWeight: 800 }}>
-                        {plan.name === 'Enterprise' ? 'Contact Sales' : plan.trial ? 'Start 14-Day Free Trial' : 'Get Started'}
+                        {plan.name === 'Enterprise' || plan.name === 'Pro' ? 'Contact Sales' : plan.trial ? 'Start 14-Day Free Trial' : 'Get Started'}
                       </Button>
                     </Paper>
                   </motion.div>
