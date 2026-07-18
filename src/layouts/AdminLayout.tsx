@@ -33,7 +33,6 @@ import {
   LightMode,
   ExpandLess,
   ExpandMore,
-  Category,
   ViewList,
   Security,
   Receipt,
@@ -72,10 +71,9 @@ const NAVIGATION_CONFIG = [
     icon: <InventoryIcon />, 
     roles: ['admin'],
     children: [
-      { title: 'Products Registry', path: '/admin/inventory', icon: <ViewList />, roles: ['admin'] },
-      { title: 'Raw Ingredients', path: '/admin/inventory/ingredients', icon: <Kitchen />, roles: ['admin'] },
-      { title: 'Recipe Configurator', path: '/admin/inventory/recipes', icon: <Science />, roles: ['admin'] },
-      { title: 'Categories', path: '/admin/inventory/categories', icon: <Category />, roles: ['admin'] },
+      { title: 'Products', path: '/admin/inventory', icon: <ViewList />, roles: ['admin'] },
+      { title: 'Ingredients', path: '/admin/inventory/ingredients', icon: <Kitchen />, roles: ['admin'] },
+      { title: 'Variants', path: '/admin/inventory/variants', icon: <Science />, roles: ['admin'] },
     ]
   },
   { 
@@ -259,7 +257,7 @@ export default function AdminLayout() {
                     </ListItem>
                     <Collapse in={openMenus[item.title]} timeout="auto" unmountOnExit>
                       <List component="div" disablePadding sx={{ mb: 1 }}>
-                        {item.children.filter(child => hasAccess(child.title)).map(child => (
+                        {item.children.map(child => (
                            <ListItem key={child.title} disablePadding sx={{ mb: 0.5 }}>
                             <Link to={child.path} style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}>
                               <ListItemButton 

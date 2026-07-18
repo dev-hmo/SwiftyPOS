@@ -5,12 +5,13 @@ import {
 } from '@mui/material';
 import { 
   Store, Receipt, Palette, Save, RestartAlt, Print, 
-  CreditCard
+  CreditCard, CloudUpload, Delete
 } from '@mui/icons-material';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface StoreSettings {
   storeName: string;
+  storeLogo: string;
   storeAddress: string;
   storePhone: string;
   storeEmail: string;
@@ -25,6 +26,7 @@ interface StoreSettings {
 
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'Swifty POS',
+  storeLogo: '',
   storeAddress: '123 Coffee Lane, Brew City, BC 10001',
   storePhone: '+1 234 567 890',
   storeEmail: 'hello@swiftypos.com',
@@ -81,6 +83,7 @@ export default function SettingsPage() {
   };
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = useCallback(() => {
     saveSettings(settings);
@@ -92,6 +95,25 @@ export default function SettingsPage() {
   const handleReset = () => {
     setSettings(DEFAULT_SETTINGS);
     setSaved(false);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logo must be under 2 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      handleChange('storeLogo', reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoRemove = () => {
+    handleChange('storeLogo', '');
+    if (logoInputRef.current) logoInputRef.current.value = '';
   };
 
   useEffect(() => {
@@ -127,6 +149,57 @@ export default function SettingsPage() {
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, height: '100%' }}>
             <SectionHeader icon={<Store />} title="Store Information" subtitle="Your business profile and branding" />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              {/* Logo upload */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <Box
+                  onClick={() => !settings.storeLogo && logoInputRef.current?.click()}
+                  sx={{
+                    width: 100, height: 100, borderRadius: 4, cursor: settings.storeLogo ? 'default' : 'pointer',
+                    border: `2px dashed ${settings.storeLogo ? 'transparent' : alpha(theme.palette.primary.main, 0.4)}`,
+                    bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', position: 'relative',
+                    '&:hover': settings.storeLogo ? {} : { borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) },
+                  }}
+                >
+                  {settings.storeLogo ? (
+                    <Box component="img" src={settings.storeLogo} alt="Store logo" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <CloudUpload sx={{ fontSize: 36, color: 'primary.main', opacity: 0.6 }} />
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" fontWeight={700}>Store Logo</Typography>
+                  <Typography variant="caption" color="text.secondary">PNG or JPG, max 2 MB. Recommended 200×200px.</Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined" size="small"
+                      onClick={() => logoInputRef.current?.click()}
+                      sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+                    >
+                      {settings.storeLogo ? 'Change' : 'Upload'}
+                    </Button>
+                    {settings.storeLogo && (
+                      <Button
+                        variant="outlined" size="small" color="error"
+                        startIcon={<Delete />}
+                        onClick={handleLogoRemove}
+                        sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </Box>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    hidden
+                    onChange={handleLogoUpload}
+                  />
+                </Box>
+              </Box>
+              {/* Text fields */}
               <TextField fullWidth label="Store Name" value={settings.storeName} onChange={e => handleChange('storeName', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
               <TextField fullWidth label="Address" value={settings.storeAddress} onChange={e => handleChange('storeAddress', e.target.value)} multiline rows={2} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
               <Box sx={{ display: 'flex', gap: 2 }}>

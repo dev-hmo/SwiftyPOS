@@ -35,4 +35,9 @@ export type {
   DBIngredient,
   DBProductRecipe,
   DBStockHistory,
+  DBVariant,
+  DBVariantOption,
+  DBProductVariant,
+  VariantOption,
+  VariantGroup,
 } from './pos';

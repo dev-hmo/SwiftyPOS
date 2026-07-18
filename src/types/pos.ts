@@ -268,3 +268,45 @@ export interface DBStockHistory {
   transaction_id: string | null;
   created_at: string;
 }
+
+// ─── Variants ────────────────────────────────────────────────
+
+export interface DBVariant {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DBVariantOption {
+  id: string;
+  variant_id: string;
+  name: string;
+  price_modifier: number;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DBProductVariant {
+  id: string;
+  product_id: string;
+  variant_option_id: string;
+  created_at: string;
+}
+
+/** Frontend-friendly flattened variant option with group name attached. */
+export interface VariantOption {
+  id: string;
+  variantId: string;
+  variantName: string;
+  name: string;
+  priceModifier: number;
+  sortOrder: number;
+}
+
+/** Frontend-friendly variant group with its options nested. */
+export interface VariantGroup {
+  id: string;
+  name: string;
+  options: { id: string; name: string; priceModifier: number; sortOrder: number }[];
+}

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { DBProduct, DBSaleTransaction, DBIngredient, DBProductRecipe, DBStockHistory } from '../types/pos';
+import type { DBProduct, DBSaleTransaction, DBIngredient, DBProductRecipe, DBStockHistory, DBVariant, DBVariantOption, DBProductVariant } from '../types/pos';
 import {
   requireAdminContext,
   requireStaffContext,
@@ -387,5 +387,140 @@ export const StockHistoryService = {
       .limit(limit);
     if (error) throw error;
     return data ?? [];
+  },
+};
+
+// ─── Variants ────────────────────────────────────────────────
+
+export const VariantService = {
+  async getAllGroups(): Promise<DBVariant[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('variants')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async getOptionsByVariant(variantId: string): Promise<DBVariantOption[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('variant_options')
+      .select('*')
+      .eq('variant_id', variantId)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async getAllOptions(): Promise<DBVariantOption[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('variant_options')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async createGroup(name: string): Promise<DBVariant[]> {
+    requireAdminContext();
+    const { data, error } = await supabase
+      .from('variants')
+      .insert([{ name }])
+      .select();
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async renameGroup(id: string, name: string): Promise<void> {
+    requireAdminContext();
+    const { error } = await supabase
+      .from('variants')
+      .update({ name })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteGroup(id: string): Promise<void> {
+    requireAdminContext();
+    const { error } = await supabase
+      .from('variants')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async addOption(variantId: string, name: string, priceModifier: number, sortOrder: number): Promise<DBVariantOption[]> {
+    requireAdminContext();
+    const { data, error } = await supabase
+      .from('variant_options')
+      .insert([{ variant_id: variantId, name, price_modifier: priceModifier, sort_order: sortOrder }])
+      .select();
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async updateOption(id: string, updates: Partial<Pick<DBVariantOption, 'name' | 'price_modifier' | 'sort_order'>>): Promise<void> {
+    requireAdminContext();
+    const { error } = await supabase
+      .from('variant_options')
+      .update(updates)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteOption(id: string): Promise<void> {
+    requireAdminContext();
+    const { error } = await supabase
+      .from('variant_options')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /** Get all product-variant links. */
+  async getAllProductLinks(): Promise<DBProductVariant[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('product_variants')
+      .select('*');
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** Get variant option IDs linked to a product. */
+  async getOptionsForProduct(productId: string): Promise<string[]> {
+    requireStaffContext();
+    const { data, error } = await supabase
+      .from('product_variants')
+      .select('variant_option_id')
+      .eq('product_id', productId);
+    if (error) throw error;
+    return (data ?? []).map((r) => r.variant_option_id);
+  },
+
+  /** Replace all variant option links for a product. */
+  async replaceForProduct(productId: string, variantOptionIds: string[]): Promise<void> {
+    requireAdminContext();
+
+    const { error: delErr } = await supabase
+      .from('product_variants')
+      .delete()
+      .eq('product_id', productId);
+    if (delErr) throw delErr;
+
+    if (variantOptionIds.length === 0) return;
+
+    const rows = variantOptionIds.map((oid) => ({
+      product_id: productId,
+      variant_option_id: oid,
+    }));
+
+    const { error: insErr } = await supabase
+      .from('product_variants')
+      .insert(rows);
+    if (insErr) throw insErr;
   },
 };

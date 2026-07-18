@@ -6,7 +6,7 @@ import {
 } from 'react';
 import { 
   Box, Typography, Button, IconButton, Grid, 
-  Dialog, DialogContent, DialogTitle,
+  Dialog, DialogContent, DialogTitle, DialogActions,
   Card, CardActionArea, TextField,
   Avatar, Chip, Paper, Tooltip,
   useTheme, alpha, useMediaQuery, SwipeableDrawer, Fab, Badge,
@@ -34,6 +34,7 @@ import { calculateSubtotal } from '../../utils/calculations';
 
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { useKDSStore } from '../../store/useKDSStore';
+import type { ProductVariantGroup, ProductVariantOption } from '../../store/useInventoryStore';
 
 // --- UPDATED MOCK DATA FOR CAFE ---
 const MOCK_CATEGORIES = [
@@ -81,6 +82,11 @@ export default function POSPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const receiptDocRef = useRef<HTMLDivElement>(null);
+
+  // Variant picker state
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<typeof products[number] | null>(null);
+  const [selectedVariantOptions, setSelectedVariantOptions] = useState<Record<string, ProductVariantOption>>({});
   
   const handlePrint = useReactToPrint({
     contentRef: receiptDocRef,
@@ -111,11 +117,39 @@ export default function POSPage() {
   );
 
   const handleProductClick = (product: typeof products[number]) => {
+    const hasVariants = product.variantGroups && product.variantGroups.length > 0;
+    if (hasVariants) {
+      setSelectedProductForVariants(product);
+      setSelectedVariantOptions({});
+      setVariantPickerOpen(true);
+      return;
+    }
     addItem(product);
     setSelectedLineId(product.id);
     setNumpadMode('Qty');
     setInputValue('');
     enqueue(`${product.name} added to cart`, 'success');
+  };
+
+  const handleVariantConfirm = () => {
+    if (!selectedProductForVariants) return;
+    const firstOption = Object.values(selectedVariantOptions)[0];
+    const modifier = firstOption?.priceModifier ?? 0;
+    const variantName = Object.values(selectedVariantOptions).map((o) => o.name).join(', ');
+    addItem({
+      ...selectedProductForVariants,
+      price: selectedProductForVariants.price,
+      variantOptionId: firstOption?.id,
+      variantOptionName: variantName || undefined,
+      priceModifier: modifier,
+    });
+    setSelectedLineId(selectedProductForVariants.id);
+    setNumpadMode('Qty');
+    setInputValue('');
+    enqueue(`${selectedProductForVariants.name}${variantName ? ` (${variantName})` : ''} added`, 'success');
+    setVariantPickerOpen(false);
+    setSelectedProductForVariants(null);
+    setSelectedVariantOptions({});
   };
 
   // Hold current order
@@ -508,6 +542,73 @@ export default function POSPage() {
       )}
 
       {/* --- CAFE MODALS --- */}
+
+      {/* VARIANT PICKER */}
+      <Dialog
+        open={variantPickerOpen}
+        onClose={() => { setVariantPickerOpen(false); setSelectedProductForVariants(null); setSelectedVariantOptions({}); }}
+        maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: 6 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 900, fontSize: '1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            Choose Options for
+            <Typography component="span" color="primary.main" sx={{ ml: 1 }}>{selectedProductForVariants?.name}</Typography>
+          </Box>
+          <IconButton onClick={() => { setVariantPickerOpen(false); setSelectedProductForVariants(null); setSelectedVariantOptions({}); }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {selectedProductForVariants?.variantGroups?.map((vg: ProductVariantGroup) => (
+            <Box key={vg.id} sx={{ mb: 4 }}>
+              <Typography variant="subtitle1" fontWeight={800} mb={1.5}>{vg.name}</Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {vg.options.map((opt: ProductVariantOption) => {
+                  const isSelected = selectedVariantOptions[vg.id]?.id === opt.id;
+                  return (
+                    <Button
+                      key={opt.id}
+                      variant={isSelected ? 'contained' : 'outlined'}
+                      onClick={() => setSelectedVariantOptions((prev) => ({ ...prev, [vg.id]: opt }))}
+                      sx={{
+                        borderRadius: 3, px: 3, py: 1.5, fontWeight: 700, textTransform: 'none',
+                        border: `2px solid ${isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3)}`,
+                        bgcolor: isSelected ? 'primary.main' : 'background.paper',
+                        color: isSelected ? 'white' : 'text.primary',
+                        '&:hover': { borderColor: 'primary.main' },
+                      }}
+                    >
+                      {opt.name}
+                      {opt.priceModifier !== 0 && (
+                        <Typography variant="caption" sx={{ ml: 0.5, opacity: 0.8 }}>
+                          ({opt.priceModifier > 0 ? '+' : ''}${opt.priceModifier.toFixed(2)})
+                        </Typography>
+                      )}
+                    </Button>
+                  );
+                })}
+              </Box>
+            </Box>
+          ))}
+
+          {selectedProductForVariants?.variantGroups?.length === 0 && (
+            <Typography color="text.secondary" align="center" sx={{ py: 4 }}>No variants configured for this product.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+          <Button onClick={() => { setVariantPickerOpen(false); setSelectedProductForVariants(null); setSelectedVariantOptions({}); }} sx={{ fontWeight: 700, borderRadius: 3 }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleVariantConfirm}
+            sx={{ borderRadius: 3, fontWeight: 800, px: 4 }}
+          >
+            Add to Cart
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* CUSTOMER SELECTION - SWIFTY STYLE */}
       <Dialog open={customerModal} onClose={() => setCustomerModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 9, p: 2 } }}>

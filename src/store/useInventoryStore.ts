@@ -18,6 +18,18 @@ export interface RecipeItem {
   quantity: number;
 }
 
+export interface ProductVariantOption {
+  id: string;
+  name: string;
+  priceModifier: number;
+}
+
+export interface ProductVariantGroup {
+  id: string;
+  name: string;
+  options: ProductVariantOption[];
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -27,6 +39,7 @@ export interface Product {
   stock_quantity: number;
   img?: string;
   recipe: RecipeItem[];
+  variantGroups: ProductVariantGroup[];
 }
 
 export interface InventoryState {
@@ -62,27 +75,38 @@ const DEFAULT_INGREDIENTS: Ingredient[] = [
 const DEFAULT_PRODUCTS: Product[] = [
   {
     id: '1', sku: 'COF-001', name: 'Terracotta Espresso', price: 18.00, stock_quantity: 0, category: 'Coffee', img: 'https://images.unsplash.com/photo-1510972527921-ce03766a1cf1?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-2', quantity: 18 }]
+    recipe: [{ ingredientId: 'ing-2', quantity: 18 }],
+    variantGroups: [
+      { id: 'sz', name: 'Size', options: [{ id: 'sz-s', name: 'Small', priceModifier: 0 }, { id: 'sz-m', name: 'Medium', priceModifier: 3 }, { id: 'sz-l', name: 'Large', priceModifier: 5 }] },
+    ],
   },
   {
     id: '2', sku: 'COF-002', name: 'Caramel Macchiato', price: 16.50, stock_quantity: 0, category: 'Coffee', img: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-2', quantity: 18 }, { ingredientId: 'ing-1', quantity: 0.2 }, { ingredientId: 'ing-5', quantity: 30 }]
+    recipe: [{ ingredientId: 'ing-2', quantity: 18 }, { ingredientId: 'ing-1', quantity: 0.2 }, { ingredientId: 'ing-5', quantity: 30 }],
+    variantGroups: [
+      { id: 'sz', name: 'Size', options: [{ id: 'sz-s', name: 'Small', priceModifier: 0 }, { id: 'sz-m', name: 'Medium', priceModifier: 3 }, { id: 'sz-l', name: 'Large', priceModifier: 5 }] },
+      { id: 'sugar', name: 'Sugar Level', options: [{ id: 'sg-0', name: '0% Sugar', priceModifier: 0 }, { id: 'sg-50', name: '50% Sugar', priceModifier: 0 }, { id: 'sg-100', name: '100% Sugar', priceModifier: 0 }] },
+    ],
   },
   {
     id: '3', sku: 'TEA-001', name: 'Artisanal Green Tea', price: 12.00, stock_quantity: 0, category: 'Tea', img: 'https://images.unsplash.com/photo-1563911191333-66223404fb85?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-4', quantity: 5 }]
+    recipe: [{ ingredientId: 'ing-4', quantity: 5 }],
+    variantGroups: [],
   },
   {
     id: '6', sku: 'COF-003', name: 'Cold Brew Oat', price: 14.00, stock_quantity: 0, category: 'Coffee', img: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=300&auto=format&fit=crop',
-    recipe: [{ ingredientId: 'ing-2', quantity: 22 }, { ingredientId: 'ing-3', quantity: 0.25 }]
+    recipe: [{ ingredientId: 'ing-2', quantity: 22 }, { ingredientId: 'ing-3', quantity: 0.25 }],
+    variantGroups: [],
   },
   {
     id: '4', sku: 'PAS-001', name: 'Classic Croissant', price: 4.50, stock_quantity: 45, category: 'Pastries', img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=300&auto=format&fit=crop',
-    recipe: []
+    recipe: [],
+    variantGroups: [],
   },
   {
     id: '5', sku: 'EQU-001', name: 'Swifty Brew Kit', price: 35.00, stock_quantity: 12, category: 'Equipment', img: 'https://images.unsplash.com/photo-1544787210-2211d247317e?q=80&w=300&auto=format&fit=crop',
-    recipe: []
+    recipe: [],
+    variantGroups: [],
   },
 ];
 
@@ -124,7 +148,7 @@ export const useInventoryStore = create<InventoryState>()(
 
       addProduct: (product) =>
         set((state) => ({
-          products: [...state.products, { ...product, stock_quantity: clampNonNegative(product.stock_quantity) }],
+          products: [...state.products, { ...product, stock_quantity: clampNonNegative(product.stock_quantity), variantGroups: product.variantGroups ?? [] }],
         })),
 
       updateProduct: (id, updates) =>
@@ -169,7 +193,6 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       deductStockFromSale: (soldItems) => {
-        // Pre-validate: reject if any item would go negative
         if (!get().canFulfillSale(soldItems)) {
           throw new Error('Insufficient stock to fulfill this sale');
         }
@@ -194,7 +217,6 @@ export const useInventoryStore = create<InventoryState>()(
             }
           }
 
-          // Low-stock alerts
           for (const ing of updatedIngredients) {
             if (ing.stock_quantity <= ing.low_stock_threshold) {
               const original = state.ingredients.find((i) => i.id === ing.id);

@@ -12,6 +12,9 @@ export interface CartItem {
   category?: string;
   img?: string;
   discount?: number;
+  variantOptionId?: string;
+  variantOptionName?: string;
+  priceModifier?: number;
 }
 
 export type CartItemInput = Omit<CartItem, 'quantity'> & { quantity?: number };
@@ -45,17 +48,26 @@ export const useCartStore = create<CartState>()(
         if (typeof product.price !== 'number' || !Number.isFinite(product.price)) return;
         const safePrice = Math.max(0, product.price);
         const addQty = Math.max(1, Math.floor(product.quantity ?? 1));
+        const priceMod = product.priceModifier ?? 0;
+        const effectivePrice = Math.max(0, safePrice + priceMod);
+        const compositeId = product.variantOptionId ? `${product.id}__${product.variantOptionId}` : product.id;
         const items = get().items;
-        const existing = items.find((i) => i.id === product.id);
+        const existing = items.find((i) => i.id === compositeId);
         if (existing) {
           set({
             items: items.map((i) =>
-              i.id === product.id ? { ...i, quantity: i.quantity + addQty } : i
+              i.id === compositeId ? { ...i, quantity: i.quantity + addQty } : i
             ),
           });
         } else {
           set({
-            items: [...items, { ...product, price: safePrice, quantity: addQty }],
+            items: [...items, {
+              ...product,
+              id: compositeId,
+              price: effectivePrice,
+              quantity: addQty,
+              priceModifier: priceMod,
+            }],
           });
         }
       },

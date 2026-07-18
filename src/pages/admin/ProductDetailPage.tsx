@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { 
   Box, Typography, Grid, TextField, Button, 
   Switch, FormControlLabel, Select, MenuItem, InputLabel, FormControl,
-  Tabs, Tab, IconButton, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, Divider,
+  Tabs, Tab, IconButton, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Chip,
   useTheme, alpha, Paper, Avatar
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -54,10 +54,8 @@ export default function ProductDetailPage() {
     minStock: 10,
     maxStock: 100,
 
-    // Variants
-    variants: [
-      { id: '1', name: 'Size', options: ['Small', 'Medium', 'Large'] }
-    ]
+    // Variants — real variant groups with options
+    variantGroupIds: existingProduct?.variantGroups?.map(vg => vg.id) || [] as string[],
   });
 
   const handleChange = (field: string, value: string | number | boolean) => {
@@ -92,6 +90,17 @@ export default function ProductDetailPage() {
   };
 
   const handleSave = () => {
+    // Build variant groups from the selected variant group IDs
+    const variantGroups = formData.variantGroupIds.map(vgId => {
+      const existing = existingProduct?.variantGroups?.find(vg => vg.id === vgId);
+      // Use existing options if product already had this group, otherwise use all options from products store
+      if (existing) return existing;
+      // Find options from any product that has this group
+      const sourceProduct = products.find(p => p.variantGroups.some(vg => vg.id === vgId));
+      const sourceGroup = sourceProduct?.variantGroups.find(vg => vg.id === vgId);
+      return sourceGroup ? { ...sourceGroup } : { id: vgId, name: vgId, options: [] };
+    });
+
     const productData = {
       id: isNew ? `prod-${Date.now()}` : id!,
       sku: formData.sku,
@@ -100,6 +109,7 @@ export default function ProductDetailPage() {
       price: formData.price,
       stock_quantity: formData.stock_quantity,
       recipe: formData.recipe,
+      variantGroups,
     };
     if (isNew) {
       addProduct(productData);
@@ -421,28 +431,80 @@ export default function ProductDetailPage() {
             {/* TAB 4: VARIANTS */}
             {activeTab === 4 && (
               <Box>
-                <Typography variant="h6" fontWeight={900} mb={2}>Strategic Attributes</Typography>
-                <Typography color="text.secondary" mb={5} fontWeight={500}>Define multidimensional product variations (color, size, material) for granular inventory control.</Typography>
+                <Typography variant="h6" fontWeight={900} mb={2}>Product Variants</Typography>
+                <Typography color="text.secondary" mb={4} fontWeight={500}>Assign variant groups to this product. Variant groups define selectable options like Size, Sugar Level, etc.</Typography>
                 
-                {formData.variants.map((variant) => (
-                  <Paper key={variant.id} elevation={0} sx={{ p: 4, mb: 3, borderRadius: 5, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, bgcolor: alpha(theme.palette.action.hover, 0.02) }}>
-                    <Grid container spacing={3} alignItems="center">
-                      <Grid size={{ xs: 12, sm: 3 }}>
-                        <TextField fullWidth label="Attribute Key" value={variant.name} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' }, '& .MuiInputLabel-root': { fontWeight: 700 } }} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 8 }}>
-                        <TextField fullWidth label="Allowed Values (Seperated by commas)" value={variant.options.join(', ')} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'background.paper' } }} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 1 }}>
-                        <IconButton color="error" sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}><Delete /></IconButton>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                ))}
+                <Typography variant="subtitle2" fontWeight={800} mb={2}>Available Variant Groups</Typography>
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 4 }}>
+                  {(() => {
+                    // Collect all unique variant groups from all products
+                    const allGroups = new Map<string, { id: string; name: string; optionCount: number }>();
+                    for (const p of products) {
+                      for (const vg of p.variantGroups ?? []) {
+                        if (!allGroups.has(vg.id)) {
+                          allGroups.set(vg.id, { id: vg.id, name: vg.name, optionCount: vg.options.length });
+                        }
+                      }
+                    }
+                    const groups = Array.from(allGroups.values());
+                    if (groups.length === 0) {
+                      return (
+                        <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px dashed ${alpha(theme.palette.divider, 0.3)}`, width: '100%', textAlign: 'center' }}>
+                          <Typography color="text.secondary" fontWeight={600}>
+                            No variant groups exist yet. Create them in{' '}
+                            <Typography component="span" color="primary.main" fontWeight={800} sx={{ cursor: 'pointer' }} onClick={() => navigate('/admin/inventory/variants')}>
+                              Inventory → Variants
+                            </Typography>
+                          </Typography>
+                        </Paper>
+                      );
+                    }
+                    return groups.map(g => {
+                      const isSelected = formData.variantGroupIds.includes(g.id);
+                      return (
+                        <Chip
+                          key={g.id}
+                          label={`${g.name} (${g.optionCount} options)`}
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              variantGroupIds: isSelected
+                                ? prev.variantGroupIds.filter(id => id !== g.id)
+                                : [...prev.variantGroupIds, g.id],
+                            }));
+                          }}
+                          color={isSelected ? 'primary' : 'default'}
+                          variant={isSelected ? 'filled' : 'outlined'}
+                          sx={{
+                            fontWeight: 700, fontSize: '0.85rem', px: 1, height: 36,
+                            border: `2px solid ${isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3)}`,
+                          }}
+                        />
+                      );
+                    });
+                  })()}
+                </Box>
 
-                <Button variant="outlined" startIcon={<Add />} sx={{ borderRadius: 3, fontWeight: 700, px: 4, py: 1.5, borderStyle: 'dashed', borderWidth: 2 }}>
-                  Integrate New Attribute
-                </Button>
+                {formData.variantGroupIds.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" fontWeight={800} mb={2}>Selected Variants Preview</Typography>
+                    {formData.variantGroupIds.map(vgId => {
+                      const sourceProduct = products.find(p => p.variantGroups.some(vg => vg.id === vgId));
+                      const group = sourceProduct?.variantGroups.find(vg => vg.id === vgId);
+                      if (!group) return null;
+                      return (
+                        <Paper key={vgId} elevation={0} sx={{ p: 3, mb: 2, borderRadius: 4, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                          <Typography fontWeight={800} mb={1}>{group.name}</Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {group.options.map(opt => (
+                              <Chip key={opt.id} label={`${opt.name}${opt.priceModifier !== 0 ? ` (${opt.priceModifier > 0 ? '+' : ''}$${opt.priceModifier.toFixed(2)})` : ''}`} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                            ))}
+                          </Box>
+                        </Paper>
+                      );
+                    })}
+                  </>
+                )}
               </Box>
             )}
           </motion.div>
